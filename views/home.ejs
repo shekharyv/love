@@ -1,0 +1,1775 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | LoveSync Premium ❤️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            if (theme === 'dark') document.documentElement.classList.add('dark');
+        })();
+
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        'brand-purple': '#4D128B', 'brand-pink': '#E11D48',
+                        'neon-pink': '#FF007F', 'neon-purple': '#9D50BB',
+                    }
+                }
+            }
+        }
+
+        async function openPairingModal() {
+            const res = await fetch('/api/my-code');
+            const data = await res.json();
+            document.getElementById('my-code-text').innerText = data.code;
+            document.getElementById('pairing-modal').classList.remove('hidden');
+        }
+
+        async function submitPairing() {
+            const code = document.getElementById('partner-code-input').value.trim();
+            if (!code) return alert("Pehle code toh likho! 😂");
+
+            const btn = document.getElementById('pair-btn');
+            const original = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Syncing...';
+
+            try {
+                const res = await fetch('/api/connect-partner', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                const data = await res.json();
+
+                if (data.status === 'connected') {
+                    alert('Sync Complete! Matched with ' + data.partnerName + ' ❤️');
+                    location.reload();
+                } else if (data.status === 'waiting') {
+                    alert("Handshake sent! ⏳ Now your partner must also enter your code to finish pairing.");
+                    btn.innerHTML = "Waiting for Partner... ⏳";
+                    btn.disabled = true;
+                } else { alert(data.error); btn.innerHTML = original; }
+            } catch (err) { alert("Something went wrong!"); btn.innerHTML = original; }
+        }
+
+        async function handleHeaderClick() {
+            const res = await fetch('/api/my-code');
+            const data = await res.json();
+            if (!data.partnerId) { openPairingModal(); } else { window.location.href = '/profile'; }
+        }
+        function closePairing() { document.getElementById('pairing-modal').classList.add('hidden'); }
+    </script>
+    <style>
+        .heart {
+            position: absolute;
+            color: #FF1493;
+            pointer-events: none;
+            animation: rise 6s infinite ease-in;
+            opacity: 0;
+            z-index: 0;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translateY(100vh) scale(0.5);
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+
+            100% {
+                transform: translateY(-10vh) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            transition: background 0.5s, border 0.5s;
+        }
+
+        .dark .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .camera-btn {
+            background: radial-gradient(circle, #E11D48 0%, #9333EA 100%);
+            box-shadow: 0 0 30px rgba(225, 29, 72, 0.4), 0 0 60px rgba(147, 51, 234, 0.2);
+        }
+
+        .camera-btn:active {
+            transform: scale(0.9);
+        }
+
+        .pulse-glow {
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 30px rgba(225, 29, 72, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 50px rgba(225, 29, 72, 0.7);
+            }
+        }
+
+        .vibrate {
+            animation: vibrate 0.1s linear 2;
+        }
+
+        @keyframes vibrate {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(2px, 2px);
+            }
+
+            100% {
+                transform: translate(-2px, -2px);
+            }
+        }
+
+        .loader-overlay {
+            position: fixed;
+            inset: 0;
+            background: #0a0514;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease-out, visibility 0.5s;
+        }
+
+        .toast-notification {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #E11D48;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 100px;
+            font-weight: 800;
+            font-size: 14px;
+            box-shadow: 0 10px 40px rgba(225, 29, 72, 0.4);
+            z-index: 60;
+            display: none;
+            animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popUp {
+            from {
+                transform: translateX(-50%) translateY(50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .reveal-card {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease-out;
+        }
+
+        .reveal-card.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- GAME ANIMATIONS --- */
+        .winner-glow {
+            animation: winner-pulse 1.5s infinite;
+            border-color: #E11D48 !important;
+            box-shadow: 0 0 40px rgba(225, 29, 72, 0.6) !important;
+        }
+
+        @keyframes winner-pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.02);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .loser-shake {
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+            filter: grayscale(1) opacity(0.6);
+            pointer-events: none;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+
+        .confetti {
+            position: fixed;
+            top: -10px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: fall 3s linear forwards;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body
+    class="bg-white text-gray-900 dark:bg-[#0a0514] dark:text-white transition-colors duration-500 overflow-x-hidden font-sans min-h-screen pb-40">
+
+    <!-- Loading Overlay -->
+    <div id="loader" class="loader-overlay">
+        <div class="flex flex-col items-center">
+            <div class="w-20 h-20 bg-btn-gradient rounded-3xl animate-bounce flex items-center justify-center p-4">
+                <i class="fas fa-heart text-5xl text-white"></i>
+            </div>
+            <p class="mt-6 text-brand-pink font-black uppercase tracking-[0.3em] animate-pulse">Syncing Love...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-notification">Sent ❤️</div>
+
+    <!-- Animated Heart Background -->
+    <div id="heart-container" class="fixed inset-0 overflow-hidden pointer-events-none z-0"></div>
+
+    <!-- Sticky Header -->
+    <header
+        class="sticky top-0 z-50 bg-[#0a0514]/60 backdrop-blur-2xl border-b border-white/5 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <div class="relative group cursor-pointer" onclick="handleHeaderClick()">
+                <img id="partner-img" src="/images/partner-avatar.png" alt="Partner"
+                    class="w-14 h-14 rounded-full border-2 border-brand-pink p-0.5 shadow-lg shadow-brand-pink/20 transition-transform group-hover:scale-110">
+                <div class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-[#0a0514]">
+                </div>
+            </div>
+            <div>
+                <h3 class="font-bold text-lg"><span id="welcome-text">Good Evening</span>, <span
+                        id="user-name">Shekhar</span> <span class="text-brand-pink">❤️</span></h3>
+                <div class="flex items-center space-x-2">
+                    <p id="partner-status" class="text-xs text-gray-500 font-medium italic">Syncing heartbeats...</p>
+
+                </div>
+
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="window.location.href='/discover'"
+                class="w-10 h-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-brand-pink hover:bg-white/10 transition-all">
+                <i class="fas fa-fire text-sm"></i>
+            </button>
+            <button onclick="window.location.href='/find-partner'"
+                class="w-10 h-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-brand-pink hover:bg-white/10 transition-all">
+                <i class="fas fa-user-plus text-sm"></i>
+            </button>
+            <div
+                class="bg-white/5 border border-white/10 rounded-2xl px-5 py-2 flex items-center space-x-2 shadow-lg group hover:bg-white/10 transition-all cursor-pointer">
+                <span class="text-xl animate-bounce">🔥</span>
+                <div class="text-left">
+                    <span class="block text-[10px] text-gray-400 font-bold uppercase tracking-widest">Streak</span>
+                    <span id="user-streak" class="text-sm font-black text-brand-pink">-- Days</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Content Grid -->
+    <main class="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
+
+        <!-- Mood Check Widget -->
+        <div id="mood-widget" class="glass-card p-6 reveal-card active transition-all duration-500">
+            <h4
+                class="font-black text-[10px] uppercase tracking-widest text-gray-500 mb-6 flex items-center justify-between">
+                <span>Mood Sync ❤️</span>
+                <span id="mood-match-badge"
+                    class="hidden px-2 py-0.5 bg-brand-pink/20 text-brand-pink rounded-full text-[8px] animate-pulse">Sync
+                    Perfect!</span>
+            </h4>
+
+            <div class="flex justify-between items-center mb-8 px-4">
+                <div class="text-center group">
+                    <p
+                        class="text-[9px] font-black uppercase text-gray-500 mb-2 group-hover:text-white transition-colors">
+                        You</p>
+                    <div id="user-mood-emoji"
+                        class="text-4xl transition-all duration-500 <%= user.mood && user.mood !== " ❓" ? ""
+                        : "grayscale" %>"><%= user.mood || "❓" %>
+                    </div>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="w-1 h-12 bg-white/5 rounded-full relative overflow-hidden">
+                        <div id="sync-progress" class="absolute inset-0 bg-brand-pink h-0 transition-all duration-1000">
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center group">
+                    <p
+                        class="text-[9px] font-black uppercase text-gray-500 mb-2 group-hover:text-white transition-colors">
+                        <span id="partnerLabel">Partner</span>
+                    </p>
+                    <div id="partner-mood-emoji" class="text-4xl filter grayscale transition-all duration-500">❓</div>
+                </div>
+            </div>
+
+            <p class="text-[11px] font-bold text-gray-400 mb-4 text-center" id="mood-sync-status">Set your mood to sync
+                with Partner...</p>
+
+            <div class="flex mt-4 justify-between items-center bg-black/40 p-1.5 rounded-2xl">
+                <button onclick="setMood('😊')"
+                    class="mood-btn w-10 h-10 flex items-center justify-center text-2xl hover:bg-white/10 rounded-xl transition-all">😊</button>
+                <button onclick="setMood('😍')"
+                    class="mood-btn w-10 h-10 flex items-center justify-center text-2xl hover:bg-white/10 rounded-xl transition-all">😍</button>
+                <button onclick="setMood('😔')"
+                    class="mood-btn w-10 h-10 flex items-center justify-center text-2xl hover:bg-white/10 rounded-xl transition-all">😔</button>
+                <button onclick="setMood('😡')"
+                    class="mood-btn w-10 h-10 flex items-center justify-center text-2xl hover:bg-white/10 rounded-xl transition-all">😡</button>
+                <button onclick="setMood('😴')"
+                    class="mood-btn w-10 h-10 flex items-center justify-center text-2xl hover:bg-white/10 rounded-xl transition-all">😴</button>
+            </div>
+        </div>
+
+        <!-- Watch Together Game Card -->
+        <div id="watch-home-card"
+            class="glass-card p-6 reveal-card active border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-transparent group overflow-hidden relative">
+            <div
+                class="absolute -right-8 -top-8 w-24 h-24 bg-indigo-500/10 blur-3xl group-hover:bg-indigo-500/20 transition-all">
+            </div>
+
+            <div class="flex items-center justify-between mb-6">
+                <h4 class="font-black text-[10px] uppercase tracking-[0.2em] text-indigo-400">Cinema Mode 🎬</h4>
+                <div class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
+            </div>
+
+            <div class="text-center mb-8">
+                <p class="text-xl font-black italic mb-2">Watch Together <span class="text-indigo-400">🍿</span></p>
+                <p class="text-[10px] text-gray-500 font-bold tracking-widest uppercase">Sync your movies</p>
+            </div>
+
+            <div
+                class="bg-black/20 p-5 rounded-2xl mb-6 flex flex-col items-center justify-center text-center border border-white/5 min-h-[100px]">
+                <p class="text-sm font-bold italic text-indigo-200">"Watch your favorite moments together ❤️"
+                </p>
+            </div>
+
+            <button onclick="window.location.href='/watch'"
+                class="w-full py-4 bg-indigo-600/20 border border-indigo-500/40 rounded-2xl font-black uppercase text-[10px] tracking-widest text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all shadow-lg active:scale-95">
+                Start Watching 🎬
+            </button>
+        </div>
+
+        <!-- Tic Tac Toe Game Card -->
+        <div id="ttt-home-card"
+            class="glass-card p-6 reveal-card active border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 to-transparent group overflow-hidden relative">
+            <div
+                class="absolute -right-8 -top-8 w-24 h-24 bg-cyan-500/10 blur-3xl group-hover:bg-cyan-500/20 transition-all">
+            </div>
+
+            <div class="flex items-center justify-between mb-6">
+                <h4 class="font-black text-[10px] uppercase tracking-[0.2em] text-cyan-400">Action Game 🎮</h4>
+                <div class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></div>
+            </div>
+
+            <div class="text-center mb-8">
+                <p class="text-xl font-black italic mb-2">Tic Tac Toe <span class="text-cyan-400">⚔️</span></p>
+                <p class="text-[10px] text-gray-500 font-bold tracking-widest uppercase">Challenge your partner</p>
+            </div>
+
+            <div id="ttt-card-body"
+                class="bg-black/20 p-5 rounded-2xl mb-6 flex flex-col items-center justify-center text-center border border-white/5 min-h-[100px]">
+                <p id="ttt-card-status" class="text-sm font-bold italic text-cyan-200">"Wanna see who is smarter? 😏"
+                </p>
+            </div>
+
+            <button onclick="startTTT()"
+                class="w-full py-4 bg-cyan-600/20 border border-cyan-500/40 rounded-2xl font-black uppercase text-[10px] tracking-widest text-cyan-400 hover:bg-cyan-600 hover:text-white transition-all shadow-lg active:scale-95">
+                Play Now 🎮
+            </button>
+        </div>
+
+        <!-- Truth or Dare Game Card -->
+        <div
+            class="glass-card p-6 reveal-card active border-purple-500/20 bg-gradient-to-br from-purple-500/10 to-transparent group overflow-hidden relative">
+            <div
+                class="absolute -right-8 -top-8 w-24 h-24 bg-purple-500/10 blur-3xl group-hover:bg-purple-500/20 transition-all">
+            </div>
+
+            <div class="flex items-center justify-between mb-6">
+                <h4 class="font-black text-[10px] uppercase tracking-[0.2em] text-purple-400">Relationship Game 🎭</h4>
+                <div class="flex space-x-2">
+                    <button onclick="toggleManualMode()" id="manual-toggle"
+                        class="text-[8px] font-black uppercase text-gray-500 border border-white/5 px-2 py-0.5 rounded-full hover:bg-white/10 transition-all">Manual:
+                        OFF</button>
+                    <div class="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div>
+                </div>
+            </div>
+
+            <div class="text-center mb-8">
+                <p class="text-xl font-black italic mb-2">Truth or Dare <span class="text-purple-400">🔥</span></p>
+                <p class="text-[10px] text-gray-500 font-bold tracking-widest uppercase">Challenge your partner</p>
+            </div>
+
+            <div id="game-display"
+                class="bg-black/20 p-5 rounded-2xl mb-6 min-h-[120px] flex flex-col items-center justify-center text-center border border-white/5 relative group-hover:border-purple-500/30 transition-all">
+                <p id="game-prompt" class="text-sm font-bold italic text-purple-200">"Tap to generate a spicy AI
+                    challenge..."</p>
+
+                <textarea id="manual-input" placeholder="Type your own challenge here... ✍️"
+                    class="hidden w-full bg-transparent border-none text-center text-sm font-bold italic text-purple-200 focus:ring-0 placeholder:text-gray-600 resize-none h-16"></textarea>
+            </div>
+
+            <div id="ai-controls" class="grid grid-cols-2 gap-3">
+                <button onclick="generateGame('truth')"
+                    class="py-4 bg-purple-600/20 border border-purple-500/30 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-purple-600 hover:text-white transition-all shadow-lg active:scale-95">
+                    Truth 💎
+                </button>
+                <button onclick="generateGame('dare')"
+                    class="py-4 bg-pink-600/20 border border-pink-500/30 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-pink-600 hover:text-white transition-all shadow-lg active:scale-95">
+                    Dare 🔥
+                </button>
+            </div>
+
+            <button onclick="sendGameChallenge()" id="game-send-btn"
+                class="w-full mt-4 py-3 bg-white text-black rounded-xl font-black uppercase text-[9px] tracking-[0.2em] opacity-0 pointer-events-none transition-all hover:scale-105 active:scale-95">
+                Send Challenge 📩
+            </button>
+        </div>
+
+        <!-- Daily Love Quiz Widget -->
+        <div
+            class="glass-card p-6 border-brand-pink/20 bg-gradient-to-br from-brand-pink/10 to-transparent reveal-card active relative overflow-hidden group">
+            <div
+                class="absolute -right-10 -top-10 w-24 h-24 bg-brand-pink/10 blur-3xl group-hover:bg-brand-pink/20 transition-all">
+            </div>
+            <h4 class="font-black text-[10px] uppercase tracking-[0.2em] text-brand-pink mb-4">Tonight's Special 🌙</h4>
+            <div class="flex items-start justify-between mb-6">
+                <div>
+                    <p class="text-xl font-black italic mb-2">Daily Love Quiz <span class="text-brand-pink">🧠</span>
+                    </p>
+                    <p class="text-[10px] text-gray-500 font-bold leading-relaxed max-w-[150px]" id="home-quiz-status">
+                        Processing today's romantic data... ⏳</p>
+                </div>
+                <div class="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-2xl"
+                    id="quiz-icon">
+                    <i class="fas fa-lock text-brand-pink"></i>
+                </div>
+            </div>
+            <button onclick="window.location.href='/quiz'" id="quiz-btn"
+                class="w-full py-4 bg-white/5 border border-white/10 rounded-2xl font-black uppercase text-[10px] tracking-widest text-gray-500 cursor-not-allowed transition-all">
+                Unlocked at 9 PM ⏰
+            </button>
+        </div>
+
+        <!-- Hero Section (Take Camera) -->
+        <div
+            class="lg:col-span-2 glass-card p-6 flex flex-col items-center justify-center text-center relative overflow-hidden reveal-card active">
+            <!-- Background Decoration -->
+            <div class="absolute inset-0 bg-gradient-to-br from-brand-pink/10 to-brand-purple/10 -z-10 blur-xl"></div>
+
+            <div class="relative group mb-8">
+                <div class="absolute -inset-8 bg-brand-pink/10 rounded-full blur-3xl pulse-glow"></div>
+                <button id="snap-btn" onclick="openHomeCamera()"
+                    class="camera-btn w-40 h-40 rounded-full flex flex-col items-center justify-center relative z-10 transition-all hover:scale-105 active:scale-90 shadow-2xl">
+                    <i class="fas fa-camera text-5xl text-white drop-shadow-lg"></i>
+                    <span class="mt-2 text-[10px] uppercase font-black tracking-[0.2em]">Capture</span>
+                </button>
+            </div>
+
+
+            <!-- Upload and Preview -->
+            <input type="file" id="home-file-input" hidden accept="image/*" />
+            <img id="home-preview"
+                class="hidden my-6 w-full max-w-[280px] rounded-3xl border-4 border-brand-pink shadow-2xl animate-in zoom-in duration-300" />
+            <div class="flex space-x-4 w-full max-w-sm">
+                <button
+                    class="flex-1 bg-white/5 border border-white/10 py-4 rounded-2xl font-bold hover:bg-white/10 transition-all flex items-center justify-center space-x-2">
+                    <i class="fas fa-upload text-gray-500"></i>
+                    <span onclick="uploadHomeImage()">Upload</span>
+                </button>
+                <button onclick="sendHomeSnap()" id="home-send-btn"
+                    class="flex-1 bg-brand-pink py-4 rounded-2xl font-black text-lg hover:shadow-[0_0_40px_rgba(225,29,72,0.5)] transition-all">
+                    Send Snap ❤️
+                </button>
+            </div>
+        </div>
+
+        <!-- Daily Challenge Card -->
+        <div class="glass-card p-6 reveal-card active">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="font-black text-sm uppercase tracking-widest text-gray-400">Daily Challenge 💖</h4>
+                <i class="fas fa-trophy text-brand-pink animate-pulse"></i>
+            </div>
+            <p id="challenge-text"
+                class="text-lg font-bold leading-relaxed mb-6 italic hover:text-brand-pink transition-colors">"Send a
+                cute morning selfie! ☀️"</p>
+            <button id="challenge-btn" onclick="completeChallenge()"
+                class="w-full bg-white text-black py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:scale-95 active:bg-green-500 active:text-white transition-all shadow-xl">
+                Complete Now 🏹
+            </button>
+            <p class="mt-4 text-[10px] font-bold text-gray-500 text-center">+50 Love Points reward 🏆</p>
+        </div>
+
+        <!-- Premium Today's Love Score Card -->
+        <div class="glass-card p-6 reveal-card active overflow-hidden relative border-white/5 bg-[#0e0a1f]">
+            <div class="absolute top-0 right-0 p-4 opacity-20"><i class="fas fa-heart text-brand-pink text-xs"></i>
+            </div>
+
+            <h4 class="font-black text-[9px] uppercase tracking-[0.2em] text-gray-500 mb-8 flex items-center">
+                Today's Love Score <span class="ml-2">❤️</span>
+            </h4>
+
+            <div class="flex items-end justify-between mb-8">
+                <div>
+                    <div class="flex items-baseline">
+                        <span id="home-love-score"
+                            class="text-7xl font-black italic tracking-tighter bg-gradient-to-r from-white via-pink-200 to-brand-pink bg-clip-text text-transparent">0</span>
+                        <span class="text-3xl font-black text-brand-pink italic">%</span>
+                    </div>
+                </div>
+
+                <!-- Neon Love Bars -->
+                <div class="flex items-end space-x-1.5 h-20 mb-2">
+                    <div class="w-2.5 bg-cyan-500/20 rounded-full h-[40%]"></div>
+                    <div class="w-2.5 bg-cyan-500/40 rounded-full h-[60%]"></div>
+                    <div class="w-2.5 bg-cyan-500/60 rounded-full h-[80%]"></div>
+                    <div class="w-2.5 bg-cyan-500/80 rounded-full h-[90%] shadow-[0_0_15px_rgba(6,182,212,0.5)]"></div>
+                    <div
+                        class="w-2.5 bg-cyan-400 rounded-full h-[100%] shadow-[0_0_20px_rgba(6,182,212,0.8)] animate-pulse">
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-6 border-t border-white/5">
+                <p id="home-score-insight" class="text-[11px] font-bold text-gray-400 leading-relaxed italic">
+                    "Analyzing your heartbeats... ⏳"
+                </p>
+            </div>
+        </div>
+
+        <!-- Last Snap Memory Card -->
+        <div class="glass-card p-6 reveal-card active group cursor-pointer" onclick="window.location.href='/camera'">
+            <h4 class="font-black text-sm uppercase tracking-widest text-gray-400 mb-4">Last Snap 📸</h4>
+            <div class="relative w-full aspect-video bg-black/40 rounded-2xl overflow-hidden border border-white/5">
+                <div id="last-snap-preview" class="absolute inset-0 flex items-center justify-center text-center p-4">
+                    <i class="fas fa-eye-slash text-brand-pink text-3xl opacity-20 mb-2"></i>
+                    <p class="text-xs font-bold text-gray-500">Decrypting latest snap... 👀</p>
+                </div>
+                <div
+                    class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                    <div class="text-[10px] font-black uppercase text-brand-pink tracking-widest">Click to view memory
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Love Reminder AI Widget -->
+        <div class="glass-card p-6 reveal-card active">
+            <h4 class="font-black text-sm uppercase tracking-widest text-gray-400 mb-4">Love Reminder AI 🤖</h4>
+            <div class="bg-black/20 p-5 rounded-2xl mb-6 relative overflow-hidden">
+                <div class="absolute -bottom-4 -left-4 text-6xl text-white/5 opacity-20"><i class="fas fa-robot"></i>
+                </div>
+                <p class="text-lg font-bold leading-tight relative">"You haven’t sent anything today 😅"</p>
+            </div>
+            <p id="suggestion-text" class="text-sm font-medium text-gray-400 mb-6 italic min-h-[40px]"></p>
+            <button onclick="getSuggestion()"
+                class="w-full border-2 border-brand-pink text-brand-pink py-4 rounded-2xl font-black hover:bg-brand-pink hover:text-white transition-all">
+                Send Something Sweet ❤️
+            </button>
+        </div>
+
+        <!-- Attention Alert -->
+        <div id="alertBox" class="hidden glass-card p-6 border-red-500/30 bg-red-500/5 reveal-card active">
+            <div class="flex items-center space-x-3 mb-6">
+                <div class="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center text-red-500">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h4 class="font-bold">Attention Alert 😬</h4>
+            </div>
+            <p id="alertText" class="text-2xl font-black leading-tight mb-4 text-red-200">You ignored last 2 snaps</p>
+            <div id="alertSubText"
+                class="bg-red-500/20 py-2 px-4 rounded-full inline-block text-[10px] font-black uppercase tracking-widest text-red-400 mb-6">
+                High Risk Streak!</div>
+            <button onclick="window.location.href='/camera'"
+                class="w-full bg-red-500 py-3 rounded-xl font-black text-white hover:bg-red-600 transition-colors shadow-[0_0_20px_rgba(239,68,68,0.4)]">
+                Reply Now 📸
+            </button>
+        </div>
+
+        <!-- Love Quiz Section -->
+        <div class="glass-card p-6 reveal-card active">
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center space-x-2">
+                    <div
+                        class="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
+                        <i class="fas fa-brain text-brand-pink"></i>
+                    </div>
+                    <h4 class="font-bold">Tonight’s Quiz ❤️</h4>
+                </div>
+                <div id="quiz-timer" class="text-sm font-black text-brand-pink animate-pulse">02:14:20</div>
+            </div>
+            <p class="text-gray-400 text-xs mb-8 text-left leading-relaxed">It's a "How Well Do You Know Me" themed quiz
+                tonight. Don't miss out!</p>
+            <button
+                class="w-full bg-white/5 border border-white/10 py-4 rounded-2xl font-black hover:bg-white/10 transition-all flex items-center justify-center space-x-2">
+                <i class="fas fa-bell"></i>
+                <span>Remind Me</span>
+            </button>
+        </div>
+
+        <!-- Love Score Progress -->
+        <div class="glass-card p-6 reveal-card active">
+            <h4 class="font-black text-[10px] uppercase tracking-widest text-gray-500 mb-6">Today’s Love Score ❤️</h4>
+            <div class="flex items-center justify-between mb-8">
+                <div class="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-pink-500">
+                    78%</div>
+                <div class="flex items-end space-x-1.5 h-16">
+                    <div class="w-2.5 bg-cyan-400/20 rounded-t-sm h-8"></div>
+                    <div class="w-2.5 bg-cyan-400/30 rounded-t-sm h-12"></div>
+                    <div class="w-2.5 bg-cyan-400/50 rounded-t-sm h-10"></div>
+                    <div class="w-2.5 bg-cyan-400/70 rounded-t-sm h-14"></div>
+                    <div class="w-2.5 bg-cyan-400 rounded-t-sm h-16 shadow-[0_0_15px_rgba(34,211,238,0.6)]"></div>
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 font-medium">Great job! You replied faster today than usual 😍</p>
+        </div>
+
+        <!-- Level System Card -->
+        <div class="glass-card p-6 reveal-card active">
+            <div class="flex items-center space-x-3 mb-6">
+                <div class="w-12 h-12 bg-purple-600/20 rounded-full flex items-center justify-center text-2xl"><i
+                        class="fas fa-medal text-purple-400"></i></div>
+                <div>
+                    <h4 class="font-black text-sm uppercase tracking-widest text-purple-400">Level 3</h4>
+                    <p class="font-bold text-white">Caring Partner ❤️</p>
+                </div>
+            </div>
+            <div class="relative w-full h-3 bg-white/10 rounded-full overflow-hidden mb-3">
+                <div class="absolute top-0 left-0 h-full bg-gradient-to-r from-brand-pink to-brand-purple"
+                    style="width: 65%;"></div>
+            </div>
+            <div class="flex justify-between text-[10px] font-black uppercase text-gray-500">
+                <span>Exp: 1420 / 2000</span>
+                <span>65% to next level</span>
+            </div>
+        </div>
+
+        <!-- Quick Insights Widget -->
+        <div class="glass-card p-6 reveal-card active">
+            <h4 class="font-black text-sm uppercase tracking-widest text-gray-400 mb-6">Quick Insights ⚡</h4>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white/5 p-4 rounded-2xl flex flex-col items-center">
+                    <span class="text-2xl mb-1">⚡</span>
+                    <span class="text-xs font-black text-gray-500 uppercase tracking-tighter">Speed</span>
+                    <span class="font-bold text-brand-pink">2.4m</span>
+                </div>
+                <div class="bg-white/5 p-4 rounded-2xl flex flex-col items-center">
+                    <span class="text-2xl mb-1">📸</span>
+                    <span class="text-xs font-black text-gray-500 uppercase tracking-tighter">Snaps</span>
+                    <span class="font-bold text-purple-400">12/Day</span>
+                </div>
+                <div class="bg-white/5 p-4 rounded-2xl flex flex-col items-center col-span-2">
+                    <span class="text-2xl mb-1">🧠</span>
+                    <span class="text-xs font-black text-gray-500 uppercase tracking-tighter">Quiz Accuracy</span>
+                    <span class="font-bold text-cyan-400">92%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Memory Flashback -->
+        <div class="glass-card p-6 reveal-card active overflow-hidden group">
+            <h4 class="font-black text-sm uppercase tracking-widest text-gray-400 mb-6">Memory Flashback ⏳</h4>
+            <div class="relative rounded-2xl overflow-hidden aspect-video mb-4">
+                <img src="/images/memory-flashback.png"
+                    class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                <div class="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                    <p class="text-sm font-bold">1 year ago today ❤️</p>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 italic">"Our first long walk under the stars. Time flies but my love stays
+                constant."</p>
+        </div>
+
+        <!-- Quick Love Actions + Surprise -->
+        <div class="lg:col-span-1 space-y-6 reveal-card active">
+            <div class="glass-card p-6">
+                <h4 class="font-black text-sm uppercase tracking-widest text-gray-400 mb-6 text-center">Quick Love
+                    Actions ❤️</h4>
+                <div class="grid grid-cols-3 gap-3">
+                    <button onclick="sendLove('I miss you')"
+                        class="bg-white/5 border border-white/10 p-3 rounded-2xl hover:bg-brand-pink transition-all flex flex-col items-center text-xl group">
+                        <span>❤️</span> <span class="text-[8px] font-bold mt-1 group-hover:text-white uppercase">Miss
+                            You</span>
+                    </button>
+                    <button onclick="sendLove('Kiss')"
+                        class="bg-white/5 border border-white/10 p-3 rounded-2xl hover:bg-brand-pink transition-all flex flex-col items-center text-xl group">
+                        <span>😘</span> <span
+                            class="text-[8px] font-bold mt-1 group-hover:text-white uppercase">Kiss</span>
+                    </button>
+                    <button onclick="sendLove('Hug')"
+                        class="bg-white/5 border border-white/10 p-3 rounded-2xl hover:bg-brand-pink transition-all flex flex-col items-center text-xl group">
+                        <span>🤗</span> <span
+                            class="text-[8px] font-bold mt-1 group-hover:text-white uppercase">Hug</span>
+                    </button>
+                </div>
+            </div>
+
+            <button id="surprise-btn" onclick="getSurprise()"
+                class="w-full bg-btn-gradient p-8 rounded-[2.5rem] font-black text-white text-2xl shadow-[0_15px_40px_rgba(225,29,72,0.4)] hover:shadow-[0_20px_50px_rgba(225,29,72,0.6)] hover:scale-105 transition-all flex items-center justify-center space-x-3 group">
+                <span class="group-hover:rotate-12 transition-transform">🎁</span>
+                <span>Tap for Surprise</span>
+            </button>
+        </div>
+
+        <!-- Functional Unread Snap Card -->
+        <div id="snapCard"
+            class="hidden glass-card overflow-hidden group cursor-pointer hover:border-brand-pink focus:outline-none reveal-card active p-6 relative">
+            <div
+                class="absolute inset-x-0 bottom-0 top-0 bg-gradient-to-t from-black via-transparent to-transparent z-0 opacity-50">
+            </div>
+
+            <div class="relative z-10">
+                <span class="text-[10px] font-black uppercase text-brand-pink tracking-[0.3em] mb-2 block">Unread Snap
+                    📸</span>
+                <h2 id="snapText" class="text-xl font-bold mb-6 text-white leading-tight italic"></h2>
+
+                <button onclick="openSnap()"
+                    class="bg-white/10 backdrop-blur-xl border border-white/20 px-8 py-3 rounded-full text-xs font-black hover:bg-white hover:text-black transition-all flex items-center space-x-2">
+                    <i class="fas fa-eye"></i>
+                    <span>Tap to view 👀</span>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-6 left-6 right-6 z-50">
+        <div
+            class="max-w-md mx-auto bg-black/40 backdrop-blur-3xl border border-white/10 rounded-full p-2 flex items-center justify-between shadow-2xl">
+            <a href="/home" class="flex-1 flex flex-col items-center justify-center p-2 text-brand-pink transition-all">
+                <i class="fas fa-home text-lg mb-1"></i>
+                <span class="text-[8px] font-black uppercase tracking-tighter">Home</span>
+            </a>
+            <a href="/chat"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-gray-500 hover:text-white transition-all">
+                <i class="fas fa-comment-dots text-lg mb-1 relative">
+                    <span class="absolute -top-1 -right-1 w-2 h-2 bg-brand-pink rounded-full"></span>
+                </i>
+                <span class="text-[8px] font-black uppercase tracking-tighter">Chat</span>
+            </a>
+
+            <div class="relative -top-3">
+                <button onclick="window.location.href='/camera'"
+                    class="camera-btn w-16 h-16 rounded-full border-4 border-[#0a0514] flex items-center justify-center shadow-2xl transform active:scale-90 transition-all bg-brand-pink">
+                    <i class="fas fa-camera text-xl text-white"></i>
+                </button>
+            </div>
+
+            <a href="/insights"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-gray-500 hover:text-white transition-all">
+                <i class="fas fa-chart-pie text-lg mb-1"></i>
+                <span class="text-[8px] font-black uppercase tracking-tighter">Insights</span>
+            </a>
+            <a href="javascript:void(0)" onclick="handleHeaderClick()"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-gray-500 hover:text-white transition-all">
+                <div class="w-5 h-5 rounded-full overflow-hidden border border-gray-600 mb-1 opacity-50 grayscale">
+                    <img src="/images/partner-avatar.png">
+                </div>
+                <span class="text-[8px] font-black uppercase tracking-tighter">Account</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        // Floating Hearts Gen
+        const container = document.getElementById('heart-container');
+        function createHeart() {
+            const heart = document.createElement('div'); heart.classList.add('heart');
+            heart.innerHTML = '<i class="fas fa-heart"></i>';
+            heart.style.left = Math.random() * 100 + 'vw';
+            heart.style.fontSize = Math.random() * 10 + 10 + 'px';
+            heart.style.animationDuration = Math.random() * 5 + 5 + 's';
+            heart.style.animationDelay = -Math.random() * 10 + 's';
+            container.appendChild(heart);
+            setTimeout(() => heart.remove(), 10000);
+        }
+        setInterval(createHeart, 1000);
+
+        // --- Master Dashboard Loader ---
+        async function loadDashboard() {
+            try {
+                // 1. Fetch Partner
+                const partnerRes = await fetch('/api/partner');
+                const partner = await partnerRes.json();
+                document.getElementById('partner-status').innerText = partner.status;
+                document.getElementById('user-streak').innerText = `${partner.streak} Days`;
+
+                // Partner's Mood logic
+                const pMoodEl = document.getElementById('header-partner-mood');
+                const pEmojiEl = document.getElementById('partner-mood-emoji');
+
+                // Update Names
+                if (document.getElementById('partnerLabel')) document.getElementById('partnerLabel').innerText = partner.name;
+
+                if (partner.partnerMood && partner.partnerMood !== "None") {
+                    document.getElementById("partnerMoodText").innerText = `${partner.name} is feeling ${partner.partnerMood} today`;
+                    pMoodEl.classList.remove('hidden');
+                    pEmojiEl.innerText = partner.partnerMood;
+                    pEmojiEl.classList.remove('grayscale');
+                } else {
+                    pMoodEl.classList.add('hidden');
+                    pEmojiEl.innerText = '❓';
+                    pEmojiEl.classList.add('grayscale');
+                }
+
+
+                // Update My Mood on Load
+                const myEmojiEl = document.getElementById('user-mood-emoji');
+                if (partner.myMood && partner.myMood !== "None") {
+                    myEmojiEl.innerText = partner.myMood;
+                    myEmojiEl.classList.remove('grayscale');
+                    document.getElementById('sync-progress').style.height = '100%';
+                }
+
+                // 2. Fetch Love Score
+                const scoreRes = await fetch('/api/love-score');
+                const scoreData = await scoreRes.json();
+                document.getElementById('home-love-score').innerText = scoreData.score;
+                document.getElementById('score-progress').style.width = (scoreData.score % 100) + '%';
+
+                // 3. Fetch Challenge
+                const challengeRes = await fetch('/api/daily-challenge');
+                const challengeData = await challengeRes.json();
+                document.getElementById('challenge-text').innerText = `"${challengeData.challenge}"`;
+
+                // 4. Fetch Last Snap
+                const snapRes = await fetch('/api/last-snap');
+                const snapData = await snapRes.json();
+                if (snapData.snap.timestamp) {
+                    document.getElementById('last-snap-preview').innerHTML = `
+                        <div class="absolute inset-0 bg-brand-pink/20 blur-md"></div>
+                        <p class="relative z-10 text-[10px] font-black uppercase text-brand-pink">Received ${new Date(snapData.snap.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 👀</p>
+                    `;
+                }
+
+                // 5. Quiz Status
+                await checkQuizStatus();
+
+                // 6. Love Reminder
+                const reminderRes = await fetch('/api/love-reminder');
+                const reminderData = await reminderRes.json();
+                if (reminderData.show) {
+                    document.getElementById('suggestion-text').innerText = reminderData.suggestion;
+                }
+
+                // Greeting logic
+                const hrs = new Date().getHours();
+                const welcome = document.getElementById('welcome-text');
+                if (hrs < 12) welcome.innerText = "Good Morning";
+                else if (hrs < 17) welcome.innerText = "Good Afternoon";
+                else welcome.innerText = "Good Evening";
+
+            } catch (err) {
+                console.error("Dashboard Sync Failed:", err);
+            } finally {
+                setTimeout(() => {
+                    document.getElementById('loader').style.opacity = '0';
+                    document.getElementById('loader').style.visibility = 'hidden';
+                }, 800);
+            }
+        }
+
+        window.onload = loadDashboard;
+
+        // Logic Functions
+        function vibrateBtn() {
+            navigator.vibrate?.(50);
+            document.getElementById('snap-btn').classList.add('vibrate');
+            setTimeout(() => {
+                document.getElementById('snap-btn').classList.remove('vibrate');
+                window.location.href = '/camera';
+            }, 500);
+        }
+
+        async function setMood(emoji) {
+            const userEmoji = document.getElementById('user-mood-emoji');
+            const partnerEmoji = document.getElementById('partner-mood-emoji');
+            const syncStatus = document.getElementById('mood-sync-status');
+            const progress = document.getElementById('sync-progress');
+            const badge = document.getElementById('mood-match-badge');
+
+            userEmoji.innerText = emoji;
+            userEmoji.classList.remove('grayscale');
+            progress.style.height = '100%';
+
+            await fetch('/api/activity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'mood', content: emoji })
+            });
+
+            if (emoji === partnerEmoji.innerText) {
+                badge.classList.remove('hidden');
+                syncStatus.innerText = "You both are in sync today! ❤️";
+                syncStatus.classList.add('text-brand-pink');
+                document.getElementById('mood-widget').classList.add('shadow-[0_0_40px_rgba(225,29,72,0.2)]');
+            } else {
+                badge.classList.add('hidden');
+                syncStatus.innerText = `You: ${emoji} | Partner: ${partnerEmoji.innerText}`;
+                syncStatus.classList.remove('text-brand-pink');
+            }
+
+            showToast("Mood Shared! ✨");
+        }
+
+        async function completeChallenge() {
+            const btn = document.getElementById('challenge-btn');
+            const res = await fetch('/api/complete-challenge', { method: 'POST' });
+            const data = await res.json();
+
+            btn.innerHTML = 'Challenge Completed! 🏆';
+            btn.classList.replace('bg-white', 'bg-green-500');
+            btn.classList.add('text-white');
+            showToast(`+${data.bonus} Love Points! 🏆`);
+            loadDashboard();
+            // Refresh dashboard every 10 seconds for real-time vibe
+            if (!window.dashInterval) window.dashInterval = setInterval(loadDashboard, 10000);
+            // Refresh score
+        }
+
+        const surprises = [
+            "A surprise dinner at your favorite place! 🍽️",
+            "I dare you to text her a romantic poem right now! 📜",
+            "What was the moment you knew you loved her? ❤️",
+            "Free hug coupon! (Valid for tonight) 🤗",
+            "New Badge Unlocked: Ultimate Sweetheart 💖"
+        ];
+        function getSurprise() {
+            const gift = surprises[Math.floor(Math.random() * surprises.length)];
+            alert(`🎁 SURPRISE: \n\n${gift}`);
+            showToast("Surprise Unlocked! 🎀");
+        }
+
+        async function sendLove(action) {
+            await fetch('/api/send-quick-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: action })
+            });
+            showToast(`${action} Sent ❤️`);
+            navigator.vibrate?.(40);
+            loadDashboard(); // Refresh score
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerHTML = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2000);
+        }
+
+
+        let pollInterval;
+        async function checkConnection() {
+            try {
+                const res = await fetch('/api/my-code');
+                const data = await res.json();
+                if (data.partnerId) {
+                    clearInterval(pollInterval);
+                    alert("Sync Complete! Matched with " + data.partnerName + " ❤️");
+                    location.reload();
+                }
+            } catch (e) { }
+        }
+
+        // Handshake Pairing Logic
+        async function openPairingModal() {
+            const res = await fetch('/api/my-code');
+            const data = await res.json();
+            document.getElementById('my-code-text').innerText = data.code;
+            document.getElementById('pairing-modal').classList.remove('hidden');
+        }
+
+        async function copyCode() {
+            const code = document.getElementById('my-code-text').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.getElementById('copy-btn');
+                const icon = btn.querySelector('i');
+                icon.classList.replace('fa-copy', 'fa-check');
+                showToast("Code Copied! 📋");
+                setTimeout(() => {
+                    icon.classList.replace('fa-check', 'fa-copy');
+                }, 2000);
+            });
+        }
+
+        async function submitPairing() {
+            const code = document.getElementById('partner-code-input').value.trim();
+            if (!code) return alert("Pehle code toh likho! 😂");
+
+            const btn = document.getElementById('pair-btn');
+            const original = btn.innerHTML;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Syncing...`;
+
+            try {
+                const res = await fetch('/api/connect-partner', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                const data = await res.json();
+
+                if (data.status === 'connected') {
+                    alert(`Sync Complete! Matched with ${data.partnerName} ❤️`);
+                    location.reload();
+                } else if (data.status === 'waiting') {
+                    alert("Handshake sent! ⏳ Now your partner must also enter your code to finish pairing.");
+                    btn.innerHTML = "Waiting for Partner... ⏳";
+                    btn.disabled = true;
+                } else { alert(data.error); btn.innerHTML = original; }
+            } catch (err) { alert("Something went wrong!"); btn.innerHTML = original; }
+        }
+
+        async function handleHeaderClick() {
+            const res = await fetch('/api/my-code');
+            const data = await res.json();
+            if (!data.partnerId) { openPairingModal(); } else { window.location.href = '/profile'; }
+        }
+        function closePairing() { document.getElementById('pairing-modal').classList.add('hidden'); }
+
+        async function checkQuizStatus() {
+            const res = await fetch('/api/quiz-status');
+            const data = await res.json();
+            const btnEl = document.getElementById('quiz-btn');
+            if (data.active) {
+                btnEl.innerText = "Take Today's Quiz 🎯";
+                btnEl.classList.add('bg-brand-pink', 'text-white');
+            }
+        }
+    </script>
+
+
+    <!-- Handshake Pairing Modal -->
+    <div id="pairing-modal"
+        class="hidden fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/90 backdrop-blur-3xl animate-fadeIn">
+        <div class="glass-card w-full max-w-sm p-10 text-center relative overflow-hidden rounded-[3rem]">
+            <button onclick="closePairing()"
+                class="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <div class="mb-8">
+                <div class="w-16 h-16 bg-brand-pink/20 rounded-2xl mx-auto flex items-center justify-center mb-4">
+                    <i class="fas fa-link text-brand-pink text-2xl"></i>
+                </div>
+                <h4 class="text-2xl font-black italic">Connect ❤️</h4>
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2 leading-relaxed">Both users
+                    must enter codes <br> to finish pairing.</p>
+            </div>
+
+            <div class="mb-10 text-center relative group">
+                <p class="text-[9px] font-black tracking-widest text-brand-pink uppercase mb-3 text-center">Your Love
+                    Code 🎀</p>
+                <div class="relative flex items-center justify-center cursor-pointer active:scale-95 transition-all"
+                    onclick="copyCode()">
+                    <div id="my-code-text"
+                        class="text-3xl font-black italic tracking-[0.3em] uppercase bg-white/5 py-4 px-10 rounded-3xl border border-white/5 w-full hover:bg-white/10 transition-colors">
+                        ------
+                    </div>
+                    <button id="copy-btn"
+                        class="absolute right-4 text-brand-pink hover:text-white transition-all bg-brand-pink/10 p-2 rounded-xl border border-brand-pink/20">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mb-10 text-left px-2">
+                <label class="text-[9px] font-black tracking-widest text-gray-500 uppercase ml-1 mb-2 block">Enter
+                    Partner Code</label>
+                <input type="text" id="partner-code-input" placeholder="ABC123" maxlength="6"
+                    class="w-full bg-black/40 border border-white/10 rounded-2xl p-5 text-center text-2xl font-black uppercase tracking-widest outline-none focus:border-brand-pink transition-all">
+            </div>
+
+            <button onclick="submitPairing()" id="pair-btn"
+                class="w-full bg-brand-pink py-5 rounded-3xl font-black uppercase text-xs tracking-widest shadow-2xl shadow-brand-pink/30 hover:scale-[1.02] active:scale-0.95 transition-all">
+                Connect ❤️
+            </button>
+        </div>
+    </div>
+
+
+    <!-- Socket.io Sync -->
+    <script>
+        const socket = io();
+        let USER_ID = "<%= user._id %>";
+        let PARTNER_ID = "<%= user.partnerId %>";
+
+        // --- NOTIFICATION PERMISSION ---
+        async function requestNotificationPermission() {
+            if ('Notification' in window) {
+                if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                    await Notification.requestPermission();
+                }
+            }
+        }
+        function showWebNotification(msg) {
+            if (Notification.permission === 'granted') {
+                const title = `${msg.user} ❤️`;
+                const options = {
+                    body: msg.type === 'image' ? 'Sent a new snap! 📸' : (msg.type === 'audio' ? 'Sent a voice note 🎤' : msg.text),
+                    icon: '/images/partner-avatar.png',
+                    vibrate: [200, 100, 200],
+                    tag: 'chat-msg'
+                };
+                new Notification(title, options);
+            }
+        }
+        socket.on('chat message', (msg) => {
+            if (msg.senderId !== USER_ID) {
+                showWebNotification(msg);
+                if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
+                showToast(`New message from ${msg.user}! ❤️`);
+            }
+        });
+        requestNotificationPermission();
+
+        async function initSync() {
+            try {
+                const res = await fetch('/api/partner');
+                const p = await res.json();
+                USER_ID = "<%= user._id %>";
+                PARTNER_ID = p.partnerId;
+
+                // Load My Initial Mood
+                const myEmoji = document.getElementById('user-mood-emoji');
+                if (myEmoji) {
+                    const myMood = "<%= user.mood %>";
+                    if (myMood && myMood !== "❓") {
+                        myEmoji.innerText = myMood;
+                        myEmoji.classList.remove('grayscale');
+                    }
+                }
+
+                // Load active games or status
+                loadTTTGame();
+                loadLoveScore();
+                loadPartnerMood();
+
+                // Update Partner Label in Widget
+                const partnerLabel = document.getElementById('partnerLabel');
+                if (partnerLabel && p.name !== "Unpaired") {
+                    partnerLabel.innerText = p.name;
+                }
+
+                if (PARTNER_ID) {
+                    socket.emit('join', { userId: USER_ID, partnerId: PARTNER_ID });
+                    loadPartnerMood(); // Initial load
+                }
+            } catch (e) { console.error("Init Error:", e); }
+        }
+
+        // --- TRUTH OR DARE SYSTEM ---
+        let isManual = false;
+        let currentChallenge = "";
+
+        function toggleManualMode() {
+            isManual = !isManual;
+            const toggleBtn = document.getElementById('manual-toggle');
+            const display = document.getElementById('game-prompt');
+            const input = document.getElementById('manual-input');
+            const aiControls = document.getElementById('ai-controls');
+            const sendBtn = document.getElementById('game-send-btn');
+
+            if (isManual) {
+                toggleBtn.innerText = "Manual: ON ✍️";
+                toggleBtn.classList.replace('text-gray-500', 'text-purple-400');
+                display.classList.add('hidden');
+                input.classList.remove('hidden');
+                aiControls.classList.add('hidden');
+                sendBtn.classList.remove('opacity-0', 'pointer-events-none');
+                sendBtn.classList.add('opacity-100', 'pointer-events-auto');
+                input.focus();
+            } else {
+                toggleBtn.innerText = "Manual: OFF";
+                toggleBtn.classList.replace('text-purple-400', 'text-gray-500');
+                display.classList.remove('hidden');
+                input.classList.add('hidden');
+                aiControls.classList.remove('hidden');
+                if (!currentChallenge) {
+                    sendBtn.classList.add('opacity-0', 'pointer-events-none');
+                }
+            }
+        }
+
+        async function generateGame(type) {
+            const display = document.getElementById('game-prompt');
+            const sendBtn = document.getElementById('game-send-btn');
+
+            display.innerText = "Thinking... 🧠✨";
+            display.classList.add('animate-pulse');
+
+            try {
+                const res = await fetch(`/api/generate-challenge?type=${type}`);
+                const data = await res.json();
+
+                if (data.challenge) {
+                    currentChallenge = data.challenge;
+                    display.innerText = `"${currentChallenge}"`;
+                    display.classList.remove('animate-pulse');
+                    display.classList.add('animate-in', 'zoom-in', 'duration-300');
+
+                    sendBtn.classList.remove('opacity-0', 'pointer-events-none');
+                    sendBtn.classList.add('opacity-100', 'pointer-events-auto');
+                } else {
+                    display.innerText = "Error! Try again. 😞";
+                }
+            } catch (e) {
+                display.innerText = "AI Offline! 😞";
+            }
+
+            navigator.vibrate?.(40);
+        }
+
+        async function sendGameChallenge() {
+            let finalChallenge = isManual ? document.getElementById('manual-input').value.trim() : currentChallenge;
+
+            if (!finalChallenge) return showToast("Challenge empty! 😅");
+
+            const btn = document.getElementById('game-send-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Sending...';
+            btn.disabled = true;
+
+            try {
+                await fetch('/api/send-quick-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: `GAME CHALLENGE: ${finalChallenge}` })
+                });
+                showToast("Challenge Sent! 🎭");
+                btn.innerHTML = 'Challenge Sent ✅';
+
+                if (isManual) document.getElementById('manual-input').value = "";
+
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 3000);
+            } catch (e) {
+                showToast("Failed to send! ❌");
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        initSync();
+
+        async function loadPartnerMood() {
+            if (!PARTNER_ID) return;
+            try {
+                const res = await fetch('/api/partner-mood');
+                const data = await res.json();
+                updatePartnerMoodUI(data.mood, data.name);
+            } catch (e) { console.error("Mood Load Error:", e); }
+        }
+
+        function updatePartnerMoodUI(mood, name) {
+            const headerDisplay = document.getElementById('partnerMood');
+            const widgetDisplay = document.getElementById('partner-mood-emoji');
+            const syncStatus = document.getElementById('mood-sync-status');
+
+            const moodValue = (mood && mood !== "❓") ? mood : "Waiting... 💭";
+
+            if (headerDisplay) headerDisplay.innerText = moodValue;
+
+            if (widgetDisplay) {
+                widgetDisplay.innerText = (mood && mood !== "❓") ? mood : "❓";
+                widgetDisplay.classList.toggle('grayscale', !mood || mood === "❓");
+                if (mood && mood !== "❓") widgetDisplay.classList.add('animate-bounce');
+                setTimeout(() => widgetDisplay.classList.remove('animate-bounce'), 2000);
+            }
+
+            if (syncStatus && name) {
+                syncStatus.innerText = mood && mood !== "❓" ? `${name} is feeling ${mood} today ❤️` : `Waiting for ${name} to share mood...`;
+            }
+        }
+
+        socket.on('partner mood update', (data) => {
+            updatePartnerMoodUI(data.mood, "Partner");
+        });
+
+        async function setMood(mood) {
+            if (!PARTNER_ID) return alert("Connect with your partner first! ❤️");
+
+            // Update my emoji visually
+            const myEmoji = document.getElementById('user-mood-emoji');
+            if (myEmoji) {
+                myEmoji.innerText = mood;
+                myEmoji.classList.remove('grayscale');
+            }
+
+            try {
+                const res = await fetch('/api/set-mood', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mood })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`Mood: ${mood} Shared! ✨`);
+                }
+            } catch (e) { console.error("Set Mood Error:", e); }
+        }
+
+        // Initialize polling safety net
+        setInterval(loadPartnerMood, 5000);
+
+        // --- SNAP SYSTEM ---
+        let homeStream, homeCapturedImage = null;
+        let autoCaptureTimer;
+
+        async function openHomeCamera() {
+            try {
+                homeStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                document.getElementById('home-video').srcObject = homeStream;
+                document.getElementById('home-camera-modal').classList.remove('hidden');
+                showToast("Auto-capture in 2s... Get ready! 📸");
+                autoCaptureTimer = setTimeout(captureHomePhoto, 2000);
+            } catch (e) { alert("Camera Access Required! 📸"); }
+        }
+
+        function captureHomePhoto() {
+            clearTimeout(autoCaptureTimer);
+            const video = document.getElementById('home-video');
+            const canvas = document.getElementById('home-canvas');
+            const flash = document.getElementById('home-cam-flash');
+            if (!video.srcObject) return;
+            flash.classList.remove('hidden');
+            setTimeout(() => flash.classList.add('hidden'), 100);
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            homeCapturedImage = canvas.toDataURL('image/jpeg', 0.6);
+            closeHomeCamera();
+            const preview = document.getElementById('home-preview');
+            if (preview) { preview.src = homeCapturedImage; preview.classList.remove('hidden'); }
+            showToast("Snap Captured! ❤️ Ready to send.");
+            document.getElementById('home-send-btn').innerHTML = "Send Now 🚀";
+        }
+
+        function uploadHomeImage() {
+            const input = document.getElementById('home-file-input');
+            input.click();
+            input.onchange = () => {
+                const file = input.files[0];
+                const reader = new FileReader();
+                reader.onload = () => {
+                    homeCapturedImage = reader.result;
+                    const preview = document.getElementById('home-preview');
+                    if (preview) { preview.src = homeCapturedImage; preview.classList.remove('hidden'); }
+                    showToast("Photo Uploaded! 📁 Ready to send.");
+                    document.getElementById('home-send-btn').innerHTML = "Send Now 🚀";
+                };
+                reader.readAsDataURL(file);
+            };
+        }
+
+        function closeHomeCamera() {
+            clearTimeout(autoCaptureTimer);
+            if (homeStream) homeStream.getTracks().forEach(t => t.stop());
+            document.getElementById('home-camera-modal').classList.add('hidden');
+        }
+
+        async function sendHomeSnap() {
+            if (!homeCapturedImage) return openHomeCamera();
+            if (!PARTNER_ID) return alert("Connect with your partner first! ❤️");
+            const btn = document.getElementById('home-send-btn');
+            btn.innerHTML = 'Sending... ⏳';
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/send-snap', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: homeCapturedImage, coupleId: [USER_ID, PARTNER_ID].sort().join('_') })
+                });
+                if ((await res.json()).success) {
+                    showToast("Snap Sent! 💖");
+                    btn.innerHTML = "Send Snap ❤️";
+                    btn.disabled = false;
+                    homeCapturedImage = null;
+                    if (document.getElementById('home-preview')) document.getElementById('home-preview').classList.add('hidden');
+                }
+            } catch (e) { showToast("Failed! ❌"); btn.disabled = false; }
+        }
+
+        async function loadLastSnap() {
+            if (!PARTNER_ID) return;
+            try {
+                const res = await fetch('/api/get-snaps');
+                const snaps = await res.json();
+                const preview = document.getElementById('last-snap-preview');
+                if (snaps.length > 0) {
+                    preview.innerHTML = `<img src="${snaps[0].text}" class="w-full h-full object-cover rounded-2xl animate-in zoom-in duration-500" />`;
+                }
+            } catch (e) { }
+        }
+
+        async function checkAttention() {
+            if (!PARTNER_ID) return;
+            try {
+                const res = await fetch('/api/attention-alert');
+                const data = await res.json();
+                const alertBox = document.getElementById('alertBox');
+                if (data.show) {
+                    alertBox.classList.remove('hidden');
+                    document.getElementById('alertText').innerText = `You ignored last ${data.count} snaps 💔`;
+                } else { alertBox.classList.add('hidden'); }
+            } catch (e) { }
+        }
+
+        setInterval(loadLastSnap, 4000);
+        setInterval(checkAttention, 5000);
+        window.addEventListener('load', () => { loadLastSnap(); checkAttention(); });
+
+    </script>
+
+    <!-- Full Screen Snap Viewer -->
+    <div id="snapViewer"
+        class="hidden fixed inset-0 bg-black flex items-center justify-center z-[500] animate-in fade-in duration-300">
+        <img id="snapImage" class="max-w-full max-h-full shadow-2xl" src="" alt="Live Snap" />
+        <div
+            class="absolute top-10 right-10 w-12 h-12 rounded-full border-4 border-white/20 flex items-center justify-center">
+            <span id="countdown" class="text-white font-black">3</span>
+        </div>
+    </div>
+
+    <!-- Dashboard Camera Modal -->
+    <div id="home-camera-modal"
+        class="hidden fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-fadeIn">
+        <video id="home-video" autoplay playsinline class="w-full h-full object-cover"></video>
+        <div class="absolute inset-x-0 bottom-10 flex flex-col items-center space-y-6">
+            <div id="home-cam-flash" class="hidden absolute inset-0 bg-white z-50"></div>
+            <button id="home-capture-btn"
+                class="w-20 h-20 bg-white rounded-full border-4 border-gray-300 shadow-2xl active:scale-95 transition-all flex items-center justify-center">
+                <div class="w-16 h-16 bg-brand-pink rounded-full"></div>
+            </button>
+            <p class="text-white font-black uppercase tracking-[0.2em] text-xs">Tap to Capture ✨</p>
+        </div>
+        <button onclick="closeHomeCamera()" class="absolute top-10 right-10 text-white text-2xl"><i
+                class="fas fa-times"></i></button>
+        <canvas id="home-canvas" class="hidden"></canvas>
+    </div>
+
+    <!-- Tic Tac Toe Full Screen Modal -->
+    <div id="ttt-modal"
+        class="hidden fixed inset-0 z-[600] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
+        <div class="w-full max-w-md flex flex-col items-center relative">
+            <div class="absolute -top-20 -left-20 w-40 h-40 bg-brand-pink/20 blur-[80px] rounded-full"></div>
+            <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-cyan-400/20 blur-[80px] rounded-full"></div>
+
+            <div class="mb-10 text-center relative z-10">
+                <h2 id="ttt-status-text" class="text-3xl font-black italic mb-2 text-white drop-shadow-lg">Your Turn! 🔥
+                </h2>
+                <p id="ttt-turn-text" class="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">Drop an X
+                </p>
+            </div>
+
+            <div id="ttt-board" class="grid grid-cols-3 gap-4 w-full aspect-square relative z-10">
+                <!-- Cells -->
+            </div>
+
+            <button onclick="closeTTTModal()"
+                class="mt-16 text-gray-600 font-black uppercase text-[9px] tracking-[0.3em] hover:text-brand-pink transition-all flex items-center space-x-2">
+                <i class="fas fa-times-circle"></i>
+                <span>Close Game 🚪</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- TIC TAC TOE SYSTEM ---
+        let tttCurrentGame = null;
+        let tttInterval = null;
+
+        async function startTTT() {
+            try {
+                const res = await fetch('/api/ttt/create', { method: 'POST' });
+                const game = await res.json();
+                openTTTModal(game);
+                showToast("Challenge sent to Partner! 🎮");
+            } catch (e) { showToast("Failed to start game ❌"); }
+        }
+
+        async function loadTTTGame() {
+            try {
+                const res = await fetch('/api/ttt/active');
+                const game = await res.json();
+                if (game) {
+                    if (!tttCurrentGame) openTTTModal(game);
+                    renderTTTBoard(game);
+                } else if (tttCurrentGame) {
+                    closeTTTModal();
+                }
+            } catch (e) { }
+        }
+
+        function openTTTModal(game) {
+            tttCurrentGame = game;
+            document.getElementById('ttt-modal').classList.remove('hidden');
+            renderTTTBoard(game);
+            if (!tttInterval) tttInterval = setInterval(loadTTTGame, 2000);
+        }
+
+        function closeTTTModal() {
+            document.getElementById('ttt-modal').classList.add('hidden');
+            tttCurrentGame = null;
+            clearInterval(tttInterval);
+            tttInterval = null;
+        }
+
+        function renderTTTBoard(game) {
+            tttCurrentGame = game;
+            const modal = document.getElementById("ttt-modal");
+            const board = document.getElementById("ttt-board");
+            const statusText = document.getElementById("ttt-status-text");
+            const turnText = document.getElementById("ttt-turn-text");
+
+            board.innerHTML = "";
+            game.board.forEach((cell, i) => {
+                const div = document.createElement('div');
+                div.onclick = () => makeTTTMove(i);
+                div.className = `h-full flex items-center justify-center text-5xl font-black rounded-[2rem] cursor-pointer transition-all duration-300 transform active:scale-95 ${cell === 'X' ? 'text-brand-pink bg-brand-pink/10 shadow-[inner_0_0_20px_rgba(225,29,72,0.2)] border border-brand-pink/30' :
+                    cell === 'O' ? 'text-cyan-400 bg-cyan-400/10 shadow-[inner_0_0_20px_rgba(34,211,238,0.2)] border border-cyan-400/30' :
+                        'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20'
+                    }`;
+                div.innerHTML = cell || "";
+                board.appendChild(div);
+            });
+
+            if (game.status === 'finished') {
+                const win = game.winner;
+                const isWinner = win === USER_ID;
+                const isDraw = !win;
+
+                if (isWinner) {
+                    statusText.innerText = "VICTORY! 🏁🏆";
+                    statusText.classList.add('text-green-500');
+                    turnText.innerText = "You are smarter! +20 Points ❤️";
+                    modal.classList.add('winner-glow');
+                    triggerConfetti();
+                } else if (isDraw) {
+                    statusText.innerText = "DRAW! 🤝";
+                    turnText.innerText = "Great minds think alike!";
+                } else {
+                    statusText.innerText = "DEFEAT... 💔";
+                    statusText.classList.add('text-red-500');
+                    turnText.innerText = "Better luck next time, Loser! 😏";
+                    modal.classList.add('loser-shake');
+                    navigator.vibrate?.([100, 50, 100]);
+                }
+
+                setTimeout(() => {
+                    closeTTTModal();
+                    modal.classList.remove('winner-glow', 'loser-shake');
+                    statusText.classList.remove('text-green-500', 'text-red-500');
+                }, 6000);
+            } else {
+                const isMyTurn = game.turn === USER_ID;
+                statusText.innerText = isMyTurn ? "Your Turn! 🔥" : "Waiting for Partner... ⏳";
+                turnText.innerText = isMyTurn ? "Tap to place mark" : "Partner is thinking";
+            }
+        }
+
+        function triggerConfetti() {
+            for (let i = 0; i < 40; i++) {
+                const c = document.createElement('div');
+                c.className = 'confetti';
+                c.style.left = Math.random() * 100 + 'vw';
+                c.style.backgroundColor = ['#E11D48', '#FF69B4', '#DA70D6', '#06b6d4'][Math.floor(Math.random() * 4)];
+                c.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                c.style.opacity = Math.random();
+                document.body.appendChild(c);
+                setTimeout(() => c.remove(), 4000);
+            }
+        }
+
+        async function makeTTTMove(index) {
+            if (!tttCurrentGame || tttCurrentGame.turn !== USER_ID || tttCurrentGame.status !== 'playing') return;
+            try {
+                const res = await fetch('/api/ttt/move', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId: tttCurrentGame._id, index })
+                });
+                const game = await res.json();
+                if (game.error) return showToast(game.error);
+                renderTTTBoard(game);
+                navigator.vibrate?.([60]);
+            } catch (e) { }
+        }
+
+        // Socket listeners for instant updates
+        if (typeof socket !== 'undefined') {
+            socket.on('ttt-invite', (data) => {
+                showToast(`${data.senderName} challenged you to TTT! 🎮`);
+                loadTTTGame();
+            });
+            socket.on('ttt-move', (game) => {
+                renderTTTBoard(game);
+            });
+        }
+
+        // --- REAL TIME SNAP SYSTEM ---
+        let currentSnap = null;
+
+        async function loadSnap() {
+            try {
+                const res = await fetch('/api/unread-snap');
+                const data = await res.json();
+
+                const card = document.getElementById("snapCard");
+                const text = document.getElementById("snapText");
+
+                if (!data) {
+                    card.classList.add('hidden');
+                    return;
+                }
+
+                currentSnap = data;
+                card.classList.remove("hidden");
+                text.innerText = `"${data.senderId === PARTNER_ID ? "Partenr" : "Partner"} sent: ${data.text || "A new snap! 📸"}"`;
+            } catch (e) {
+                console.error("Snap load failed", e);
+            }
+        }
+
+        async function openSnap() {
+            if (!currentSnap) return;
+
+            const viewer = document.getElementById("snapViewer");
+            const img = document.getElementById("snapImage");
+            const countdownEl = document.getElementById("countdown");
+
+            img.src = currentSnap.text; // Message stored image in 'text' field currently
+            viewer.classList.remove("hidden");
+
+            // Mark as opened in backend
+            await fetch("/api/open-snap", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ snapId: currentSnap._id })
+            });
+
+            // ⏳ 3 Sec Countdown
+            let left = 3;
+            const timer = setInterval(() => {
+                left--;
+                countdownEl.innerText = left;
+                if (left <= 0) {
+                    clearInterval(timer);
+                    viewer.classList.add("hidden");
+                    img.src = "";
+                    document.getElementById("snapCard").classList.add("hidden");
+                    currentSnap = null;
+                }
+            }, 1000);
+
+            navigator.vibrate?.(100);
+        }
+
+        // --- LOVE SCORE SYSTEM ---
+        async function loadLoveScore() {
+            try {
+                const res = await fetch('/api/today-stats');
+                const data = await res.json();
+
+                const scoreEl = document.getElementById('home-love-score');
+                const insightEl = document.getElementById('home-score-insight');
+
+                if (data.score) {
+                    // Smooth counter effect
+                    let start = 0;
+                    const end = data.score;
+                    const duration = 1000;
+                    const stepTime = Math.abs(Math.floor(duration / end));
+
+                    const timer = setInterval(() => {
+                        start++;
+                        if (scoreEl) scoreEl.innerText = start;
+                        if (start >= end) clearInterval(timer);
+                    }, stepTime);
+
+                    if (insightEl) insightEl.innerText = `"${data.insight}"`;
+                }
+            } catch (e) {
+                console.error("Love Score failed", e);
+            }
+        }
+
+        // Initialize and Set Interval
+        loadLoveScore();
+        setInterval(loadLoveScore, 10000);
+
+        // Auto Load Snaps every few seconds
+        setInterval(loadSnap, 3000);
+    </script>
+</body>
+
+</html>

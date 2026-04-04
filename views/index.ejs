@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoveSync | Fun & Stronger Relationships ❤️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            if (theme === 'dark') document.documentElement.classList.add('dark');
+        })();
+
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'brand-purple': '#4D128B',
+                        'brand-pink': '#E11D48',
+                        'neon-pink': '#FF007F',
+                        'neon-purple': '#9D50BB',
+                    },
+                    backgroundImage: {
+                        'hero-gradient': 'radial-gradient(circle at center, #1a0b2e 0%, #0a0514 100%)',
+                        'glass-gradient': 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
+                        'btn-gradient': 'linear-gradient(to right, #E11D48, #9333EA)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: translateY(-20px) rotate(15deg);
+                opacity: 0.9;
+            }
+        }
+
+        .heart {
+            position: absolute;
+            color: #FF1493;
+            pointer-events: none;
+            animation: rise 5s infinite ease-in;
+            opacity: 0;
+            z-index: 0;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translateY(100vh) scale(0.5);
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+
+            100% {
+                transform: translateY(-10vh) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+        }
+
+        .glow-hover:hover {
+            box-shadow: 0 0 25px rgba(255, 0, 127, 0.4), 0 0 10px rgba(157, 80, 187, 0.4);
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease-out;
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .scroll-mt-nav {
+            scroll-margin-top: 80px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0514;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4D128B;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #E11D48;
+        }
+
+        .mockup-glow::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 140%;
+            height: 140%;
+            background: radial-gradient(circle, rgba(225, 29, 72, 0.15) 0%, transparent 60%);
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-white text-gray-900 dark:bg-[#0a0514] dark:text-white transition-colors duration-500 overflow-x-hidden font-sans">
+
+    <!-- Animated Heart Background -->
+    <div id="heart-container" class="fixed inset-0 overflow-hidden pointer-events-none z-0"></div>
+
+    <!-- Navbar -->
+    <nav class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-6 py-4" id="main-nav">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <a href="#" class="flex items-center space-x-2 group">
+                <div
+                    class="w-10 h-10 bg-btn-gradient rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                    <i class="fas fa-heart text-white"></i>
+                </div>
+                <span
+                    class="text-2xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-pink-200">
+                    LoveSync <span class="text-xs align-top ml-1 text-pink-500">❤️</span>
+                </span>
+            </a>
+
+            <div class="hidden md:flex items-center space-x-10 text-gray-300 font-medium">
+                <a href="/" class="hover:text-pink-500 transition-colors">Home</a>
+                <a href="/#features" class="hover:text-pink-500 transition-colors">Features</a>
+                <a href="/#faq" class="hover:text-pink-500 transition-colors">FAQ</a>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <button onclick="toggleTheme()"
+                    class="w-10 h-10 bg-brand-pink/10 dark:bg-brand-pink/20 rounded-xl flex items-center justify-center text-brand-pink hover:shadow-[0_0_15px_rgba(225,29,72,0.5)] transition-all">
+                    <i id="theme-icon" class="fas fa-moon"></i>
+                </button>
+                <button onclick="window.location.href='/auth'"
+                    class="bg-btn-gradient px-6 py-2.5 rounded-full font-bold shadow-lg shadow-pink-500/20 hover:shadow-pink-500/40 hover:scale-105 transition-all glow-hover">
+                    Get Started <i class="fas fa-chevron-right ml-1 text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="relative min-h-screen flex items-center pt-28 pb-20 px-6 overflow-hidden">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+
+            <!-- Left Content -->
+            <div class="z-10 text-center lg:text-left reveal">
+                <span
+                    class="inline-block px-4 py-1.5 rounded-full bg-brand-pink/10 border border-brand-pink/20 text-brand-pink text-sm font-semibold mb-6">
+                    ✨ Elevate Your Love Journey
+                </span>
+                <h1 class="text-5xl lg:text-7xl font-extrabold leading-tight mb-6">
+                    Make Your <br />
+                    <span
+                        class="bg-clip-text text-transparent bg-gradient-to-r from-brand-pink to-purple-400">Relationship
+                        Fun</span> <br />
+                    & Stronger!
+                </h1>
+                <p class="text-gray-400 text-xl mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                    Stay connected with daily snaps, fun love quizzes, and insightful tracking. Discover how much your
+                    partner truly cares.
+                </p>
+                <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                    <button
+                        class="w-full sm:w-auto flex items-center justify-center space-x-3 bg-white text-black px-8 py-4 rounded-2xl font-bold transition-all hover:bg-gray-100 hover:-translate-y-1">
+                        <i class="fab fa-apple text-2xl"></i>
+                        <div class="text-left">
+                            <p class="text-[10px] uppercase block -mb-1">Download on the</p>
+                            <p class="text-lg">App Store</p>
+                        </div>
+                    </button>
+                    <button
+                        class="w-full sm:w-auto flex items-center justify-center space-x-3 bg-gray-800/50 text-white px-8 py-4 rounded-2xl font-bold border border-gray-700 transition-all hover:bg-gray-800 hover:-translate-y-1">
+                        <i class="fab fa-google-play text-2xl"></i>
+                        <div class="text-left">
+                            <p class="text-[10px] uppercase block -mb-1">Get it on</p>
+                            <p class="text-lg">Google Play</p>
+                        </div>
+                    </button>
+                </div>
+                <div
+                    class="mt-8 flex items-center justify-center lg:justify-start space-x-4 text-gray-500 text-sm italic">
+                    <span>• Free to download</span>
+                    <span>• For couples only</span>
+                </div>
+            </div>
+
+            <!-- Right Visual -->
+            <div class="relative z-10 lg:pl-10 reveal" style="transition-delay: 200ms;">
+                <div class="mockup-glow relative">
+                    <img src="/images/app-mockup.png" alt="LoveSync App Interface"
+                        class="relative z-10 w-full max-w-md mx-auto transform hover:rotate-2 transition-transform duration-500 drop-shadow-[0_0_50px_rgba(225,29,72,0.3)]">
+
+                    <!-- Floating elements as decor -->
+                    <div class="absolute -top-10 -right-10 w-24 h-24 bg-purple-600/20 blur-3xl rounded-full"></div>
+                    <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-pink-600/20 blur-3xl rounded-full"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-24 px-6 relative bg-black/30 scroll-mt-nav">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-20 reveal">
+                <h2 class="text-4xl md:text-5xl font-bold mb-6">Discover the Magic of LoveSync <span
+                        class="text-pink-500 italic">❤️</span></h2>
+                <div class="h-1.5 w-24 bg-btn-gradient mx-auto rounded-full"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="glass-card p-10 hover:border-brand-pink/40 hover:bg-white/5 transition-all group reveal"
+                    style="transition-delay: 100ms;">
+                    <div
+                        class="w-16 h-16 bg-brand-pink/20 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-camera text-brand-pink text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Send Daily Snaps 📸</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Stay connected with real-time moments. Share what you're doing and see your partner's reaction
+                        instantly.
+                    </p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="glass-card p-10 hover:border-brand-pink/40 hover:bg-white/5 transition-all group reveal"
+                    style="transition-delay: 200ms;">
+                    <div
+                        class="w-16 h-16 bg-purple-600/20 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-brain text-purple-400 text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Auto Love Quizzes 🧠</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Our AI generates personalized quizzes daily. Test how well you actually know your partner in a
+                        fun way.
+                    </p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="glass-card p-10 hover:border-brand-pink/40 hover:bg-white/5 transition-all group reveal"
+                    style="transition-delay: 300ms;">
+                    <div
+                        class="w-16 h-16 bg-cyan-600/20 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-chart-line text-cyan-400 text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Relationship Insights 📊</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Track your daily attention score, love streak, and emotional connection with detailed analytics.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="py-24 px-6 relative overflow-hidden bg-[#0e071a]">
+        <div class="max-w-7xl mx-auto relative z-10">
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-4xl font-bold mb-4">How It Works</h2>
+                <p class="text-gray-400">Simple steps to 3x your relationship fun</p>
+            </div>
+
+            <div class="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-4 lg:px-20">
+
+                <div class="flex-1 text-center reveal" style="transition-delay: 100ms;">
+                    <div class="relative inline-block mb-6">
+                        <div
+                            class="w-20 h-20 rounded-full bg-gradient-to-tr from-pink-600 to-purple-600 flex items-center justify-center text-3xl font-bold shadow-lg shadow-pink-500/20">
+                            1</div>
+                    </div>
+                    <h4 class="text-xl font-bold mb-2">Send Snap</h4>
+                    <p class="text-gray-500 text-sm">Capture and share a moment instantly with your partner.</p>
+                </div>
+
+                <div class="hidden lg:block h-[2px] w-20 bg-gradient-to-r from-pink-500/50 to-purple-500/50"></div>
+
+                <div class="flex-1 text-center reveal" style="transition-delay: 200ms;">
+                    <div class="relative inline-block mb-6">
+                        <div
+                            class="w-20 h-20 rounded-full bg-gradient-to-tr from-purple-600 to-blue-600 flex items-center justify-center text-3xl font-bold shadow-lg shadow-purple-500/20">
+                            2</div>
+                    </div>
+                    <h4 class="text-xl font-bold mb-2">AI Quiz</h4>
+                    <p class="text-gray-500 text-sm">AI creates a quiz based on your snap and shared history.</p>
+                </div>
+
+                <div class="hidden lg:block h-[2px] w-20 bg-gradient-to-r from-purple-500/50 to-pink-500/50"></div>
+
+                <div class="flex-1 text-center reveal" style="transition-delay: 300ms;">
+                    <div class="relative inline-block mb-6">
+                        <div
+                            class="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-600 to-pink-600 flex items-center justify-center text-3xl font-bold shadow-lg shadow-blue-500/20">
+                            3</div>
+                    </div>
+                    <h4 class="text-xl font-bold mb-2">Track Score</h4>
+                    <p class="text-gray-500 text-sm">Watch your love score grow and maintain your streak!</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Start Now Section / CTA -->
+    <section class="py-24 px-6 relative">
+        <div class="max-w-5xl mx-auto rounded-[3rem] bg-btn-gradient p-1 bg-white/5 reveal">
+            <div class="rounded-[2.8rem] bg-[#0a0514] px-10 py-20 text-center relative overflow-hidden">
+                <!-- Inner glow -->
+                <div class="absolute inset-0 bg-brand-pink/5 blur-3xl pointer-events-none"></div>
+
+                <h2 class="text-4xl md:text-6xl font-black mb-8 leading-tight">
+                    Start Your Love <br />
+                    <span class="text-brand-pink">Journey Today ❤️</span>
+                </h2>
+                <p class="text-gray-400 text-lg mb-12 max-w-2xl mx-auto">
+                    Join over 50,000+ happy couples in sync. Download LoveSync now and rediscover the joy of your bond.
+                </p>
+
+                <button onclick="window.location.href='/auth'"
+                    class="bg-btn-gradient text-white px-12 py-5 rounded-full text-2xl font-black shadow-[0_0_50px_rgba(225,29,72,0.4)] hover:shadow-[0_0_70px_rgba(225,29,72,0.6)] hover:scale-105 transition-all glow-hover animate-pulse">
+                    Get Started <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="pt-20 pb-10 px-6 border-t border-white/5 relative z-10">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+            <div class="col-span-1 md:col-span-2">
+                <a href="#" class="flex items-center space-x-2 mb-6">
+                    <div class="w-8 h-8 bg-brand-pink rounded-lg flex items-center justify-center">
+                        <i class="fas fa-heart text-white text-sm"></i>
+                    </div>
+                    <span class="text-xl font-bold">LoveSync</span>
+                </a>
+                <p class="text-gray-500 max-w-sm mb-8">
+                    The #1 app for couples who want to stay connected, have fun, and build a stronger bond every single
+                    day.
+                </p>
+                <div class="flex items-center space-x-5 text-gray-400">
+                    <a href="#" class="hover:text-pink-500 transition-colors text-2xl"><i
+                            class="fab fa-instagram"></i></a>
+                    <a href="#" class="hover:text-pink-500 transition-colors text-2xl"><i
+                            class="fab fa-twitter"></i></a>
+                    <a href="#" class="hover:text-pink-500 transition-colors text-2xl"><i class="fab fa-tiktok"></i></a>
+                </div>
+            </div>
+
+            <div>
+                <h5 class="text-white font-bold mb-6">Links</h5>
+                <ul class="space-y-4 text-gray-500">
+                    <li><a href="#home" class="hover:text-white transition-colors">Home</a></li>
+                    <li><a href="#features" class="hover:text-white transition-colors">Features</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Contact</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Download</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h5 class="text-white font-bold mb-6">Resources</h5>
+                <ul class="space-y-4 text-gray-500">
+                    <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">FAQ</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Support</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto pt-10 border-t border-white/5 text-center text-gray-600 text-sm">
+            <p>&copy; 2026 LoveSync. All rights reserved. Made with ❤️ for lovers.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Floating Hearts Gen
+        const container = document.getElementById('heart-container');
+        const heartCount = 30;
+
+        function createHeart() {
+            const heart = document.createElement('div');
+            heart.classList.add('heart');
+            heart.innerHTML = '<i class="fas fa-heart"></i>';
+
+            const left = Math.random() * 100;
+            const size = Math.random() * (20 - 10) + 10;
+            const duration = Math.random() * (10 - 5) + 5;
+            const delay = Math.random() * 10;
+
+            heart.style.left = left + 'vw';
+            heart.style.fontSize = size + 'px';
+            heart.style.animationDuration = duration + 's';
+            heart.style.animationDelay = -delay + 's';
+
+            container.appendChild(heart);
+        }
+
+        for (let i = 0; i < heartCount; i++) {
+            createHeart();
+        }
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('main-nav');
+            if (window.scrollY > 50) {
+                nav.classList.add('bg-[#0a0514]/80', 'backdrop-blur-md', 'border-b', 'border-white/5', 'py-3');
+                nav.classList.remove('py-4');
+            } else {
+                nav.classList.remove('bg-[#0a0514]/80', 'backdrop-blur-md', 'border-b', 'border-white/5', 'py-3');
+                nav.classList.add('py-4');
+            }
+        });
+
+        // Intersection Observer for reveal animations
+        const revealCallback = (entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        };
+
+        const observer = new IntersectionObserver(revealCallback, {
+            threshold: 0.1
+        });
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            updateThemeIcon(isDark);
+        }
+
+        function updateThemeIcon(isDark) {
+            const icon = document.getElementById('theme-icon');
+            if (icon) icon.className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+        }
+        updateThemeIcon(document.documentElement.classList.contains('dark'));
+    </script>
+</body>
+
+</html>

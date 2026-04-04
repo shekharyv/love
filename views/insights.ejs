@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insights | LoveSync Premium ❤️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        'brand-purple': '#4D128B',
+                        'brand-pink': '#E11D48',
+                        'neon-pink': '#FF007F',
+                        'neon-purple': '#9D50BB',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .heart {
+            position: absolute;
+            color: #FF1493;
+            pointer-events: none;
+            animation: rise 6s infinite ease-in;
+            opacity: 0;
+            z-index: 0;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translateY(100vh) scale(0.5);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(-10vh) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+        }
+
+        .progress-circle {
+            transition: stroke-dashoffset 1s ease-out;
+        }
+
+        .chart-line {
+            fill: none;
+            stroke: url(#grad1);
+            stroke-width: 4;
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: dash 3s ease-out forwards;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #E11D48, #9333EA);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .confetti {
+            position: fixed;
+            top: -10px;
+            width: 10px;
+            height: 10px;
+            background: #E11D48;
+            border-radius: 50%;
+            animation: fall 3s linear infinite;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+            }
+        }
+
+        .scale-in {
+            animation: scaleIn 0.5s ease-out;
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-[#0a0514] text-white overflow-x-hidden font-sans min-h-screen pb-40">
+
+    <!-- Heart Background -->
+    <div id="heart-container" class="fixed inset-0 pointer-events-none z-0"></div>
+
+    <!-- Header -->
+    <header class="glass-card mx-6 mt-6 p-6 flex flex-col md:flex-row items-center justify-between sticky top-6 z-50">
+        <div class="flex items-center space-x-3 mb-4 md:mb-0">
+            <div class="p-3 bg-brand-pink/10 rounded-xl"><i class="fas fa-heart text-brand-pink text-xl"></i></div>
+            <div>
+                <h1 class="font-black text-xl tracking-tight">LoveSync ❤️</h1>
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Relationship Insights</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4 bg-white/5 px-6 py-2 rounded-2xl border border-white/10">
+            <span class="text-xl">🔥</span>
+            <span class="text-sm font-black text-gray-200">15 Days Streak</span>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-10 space-y-10 relative z-10">
+
+        <!-- Hero: Love Score Comparison -->
+        <section class="glass-card p-10 relative overflow-hidden group">
+            <div
+                class="absolute -top-10 -right-10 w-48 h-48 bg-brand-pink/10 blur-3xl group-hover:bg-brand-pink/20 transition-all">
+            </div>
+
+            <div class="flex flex-col md:flex-row items-center justify-around space-y-10 md:space-y-0">
+                <!-- User Score -->
+                <div class="text-center scale-in">
+                    <div class="relative w-40 h-40">
+                        <svg class="w-full h-full transform -rotate-90">
+                            <circle cx="80" cy="80" r="70" stroke="rgba(255,255,255,0.05)" stroke-width="12"
+                                fill="none" />
+                            <circle id="user-circle" cx="80" cy="80" r="70" stroke="url(#pinkGrad)" stroke-width="12"
+                                fill="none" stroke-dasharray="440" stroke-dashoffset="440" class="progress-circle" />
+                            <defs>
+                                <linearGradient id="pinkGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#E11D48;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#9333EA;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-4xl font-black">77<span class="text-xl text-pink-500">%</span></span>
+                            <span class="text-[10px] text-gray-400 font-black uppercase tracking-widest">You</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hidden md:flex flex-col items-center">
+                    <i class="fas fa-heart text-5xl text-brand-pink animate-pulse"></i>
+                </div>
+
+                <!-- Partner Score -->
+                <div class="text-center scale-in" style="animation-delay: 0.2s">
+                    <div class="relative w-40 h-40">
+                        <svg class="w-full h-full transform -rotate-90">
+                            <circle cx="80" cy="80" r="70" stroke="rgba(255,255,255,0.05)" stroke-width="12"
+                                fill="none" />
+                            <circle id="partner-circle" cx="80" cy="80" r="70" stroke="#06b6d4" stroke-width="12"
+                                fill="none" stroke-dasharray="440" stroke-dashoffset="440" class="progress-circle" />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-4xl font-black">80<span class="text-xl text-cyan-400">%</span></span>
+                            <span class="text-[10px] text-gray-400 font-black uppercase tracking-widest">Partner</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-12 text-center">
+                <p class="text-lg font-bold italic text-gray-300">"Looks like your partner cared more this week 😏"</p>
+                <button onclick="triggerConfetti()"
+                    class="mt-6 text-brand-pink font-black text-xs uppercase tracking-widest border border-brand-pink/30 px-6 py-2 rounded-full hover:bg-brand-pink hover:text-white transition-all">Celebration
+                    🥳</button>
+            </div>
+        </section>
+
+        <!-- Weekly Tracker Chart -->
+        <section class="glass-card p-8 scale-in" style="animation-delay: 0.3s">
+            <h4 class="font-black text-sm uppercase tracking-widest text-gray-400 mb-8">Weekly Love Tracker 📈</h4>
+            <div class="relative h-64 w-full">
+                <svg viewBox="0 0 1000 300" class="w-full h-full">
+                    <!-- Week Days -->
+                    <g transform="translate(0, 280)" class="text-[20px] font-bold fill-gray-500">
+                        <text x="0">Sun</text><text x="160">Mon</text><text x="320">Tue</text><text x="480">Wed</text>
+                        <text x="640">Thu</text><text x="800">Fri</text><text x="960">Sat</text>
+                    </g>
+                    <!-- Grid Lines -->
+                    <line x1="0" y1="250" x2="1000" y2="250" stroke="white" stroke-opacity="0.05" />
+                    <line x1="0" y1="150" x2="1000" y2="150" stroke="white" stroke-opacity="0.05" />
+                    <line x1="0" y1="50" x2="1000" y2="50" stroke="white" stroke-opacity="0.05" />
+
+                    <!-- Line Your Data -->
+                    <path class="chart-line" d="M0,200 L160,180 L320,220 L480,150 L640,110 L800,160 L960,130"
+                        stroke="#E11D48" />
+                    <!-- Line Partner Data -->
+                    <path class="chart-line" d="M0,150 L160,140 L320,130 L480,120 L640,140 L800,100 L960,90"
+                        stroke="#06b6d4" stroke-opacity="0.6" style="animation-delay: 0.5s" />
+                </svg>
+            </div>
+            <div class="flex items-center justify-center space-x-8 mt-4">
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 rounded-full bg-brand-pink"></div><span class="text-xs font-bold">You</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 rounded-full bg-cyan-400"></div><span class="text-xs font-bold">Partner</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Behavior Insights Grid -->
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="glass-card p-6 scale-in" style="animation-delay: 0.4s">
+                <div
+                    class="w-12 h-12 bg-yellow-400/10 rounded-xl flex items-center justify-center text-yellow-400 text-2xl mb-4">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h5 class="text-xs font-black uppercase text-gray-500 mb-2">Reply Speed</h5>
+                <p class="text-xl font-black"><span id="u-speed">--</span> <span
+                        class="text-xs font-normal text-brand-pink">v/s <span id="p-speed">--</span></span></p>
+                <div id="speed-tag" class="mt-4 text-[10px] text-gray-400 font-bold italic">Analyzing...</div>
+            </div>
+            <div class="glass-card p-6 scale-in" style="animation-delay: 0.5s">
+                <div
+                    class="w-12 h-12 bg-purple-400/10 rounded-xl flex items-center justify-center text-purple-400 text-2xl mb-4">
+                    <i class="fas fa-ghost"></i>
+                </div>
+                <h5 class="text-xs font-black uppercase text-gray-500 mb-2">Moments Missed</h5>
+                <p class="text-xl font-black"><span id="u-missed">--</span> <span
+                        class="text-xs font-normal text-red-500">v/s <span id="p-missed">--</span></span></p>
+                <div id="missed-tag" class="mt-4 text-[10px] text-gray-400 font-bold italic">Analyzing...</div>
+            </div>
+            <div class="glass-card p-6 scale-in" style="animation-delay: 0.6s">
+                <div
+                    class="w-12 h-12 bg-cyan-400/10 rounded-xl flex items-center justify-center text-cyan-400 text-2xl mb-4">
+                    <i class="fas fa-camera"></i>
+                </div>
+                <h5 class="text-xs font-black uppercase text-gray-500 mb-2">Snap Frequency</h5>
+                <p class="text-xl font-black"><span id="u-snaps">--</span> <span
+                        class="text-xs font-normal text-cyan-400">v/s <span id="p-snaps">--</span></span></p>
+                <div id="snaps-tag" class="mt-4 text-[10px] text-gray-400 font-bold italic">Analyzing...</div>
+            </div>
+            <div class="glass-card p-6 scale-in" style="animation-delay: 0.7s">
+                <div
+                    class="w-12 h-12 bg-pink-400/10 rounded-xl flex items-center justify-center text-pink-400 text-2xl mb-4">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h5 class="text-xs font-black uppercase text-gray-500 mb-2">Quiz Accuracy</h5>
+                <p class="text-xl font-black"><span id="u-acc">--</span>% <span
+                        class="text-xs font-normal text-pink-400">v/s <span id="p-acc">--</span>%</span></p>
+                <div id="acc-tag" class="mt-4 text-[10px] text-gray-400 font-bold italic">Analyzing...</div>
+            </div>
+        </section>
+
+        <!-- Memory Lane Horizontal -->
+        <section class="space-y-6">
+            <div class="flex items-center justify-between">
+                <h4 class="font-black text-sm uppercase tracking-widest text-gray-400">Memory Lane ❤️</h4>
+                <button class="text-[10px] font-black uppercase text-brand-pink tracking-widest hover:underline">View
+                    All</button>
+            </div>
+            <div class="flex space-x-6 overflow-x-auto no-scrollbar pb-6">
+                <!-- Memory card -->
+                <div class="flex-shrink-0 w-64 glass-card overflow-hidden group">
+                    <img src="/images/memory-flashback.png"
+                        class="w-full h-40 object-cover opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all">
+                    <div class="p-6">
+                        <p class="text-xs font-bold italic mb-1">"The First Walk"</p>
+                        <p class="text-[10px] text-gray-500">1 year ago today</p>
+                    </div>
+                </div>
+                <!-- Memory card -->
+                <div class="flex-shrink-0 w-64 glass-card overflow-hidden group">
+                    <img src="/images/snap-preview.png"
+                        class="w-full h-40 object-cover opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all">
+                    <div class="p-6">
+                        <p class="text-xs font-bold italic mb-1">"Missing You Snap"</p>
+                        <p class="text-[10px] text-gray-400 font-bold">Last Morning</p>
+                    </div>
+                </div>
+                <!-- Memory card -->
+                <div
+                    class="flex-shrink-0 w-64 glass-card overflow-hidden group border-brand-pink/40 border-dashed border-2 bg-brand-pink/5 flex flex-col items-center justify-center">
+                    <i class="fas fa-plus text-brand-pink text-3xl mb-2"></i>
+                    <p class="text-[10px] font-black uppercase tracking-widest">Add Legacy</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI Love Insight Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <section class="glass-card p-8 bg-brand-purple/10 border-brand-purple/30 relative overflow-hidden">
+                <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-brand-purple/10 blur-3xl"></div>
+                <div class="flex items-center space-x-3 mb-6">
+                    <div
+                        class="w-12 h-12 bg-brand-purple/20 rounded-xl flex items-center justify-center text-brand-purple text-2xl">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h4 class="font-black text-sm uppercase tracking-widest">AI Love Insight 🤖</h4>
+                </div>
+                <div class="bg-black/20 p-6 rounded-2xl">
+                    <p id="ai-insight" class="text-xl font-bold leading-tight">"You reply faster but forget details 😅"
+                    </p>
+                    <p class="mt-4 text-[10px] text-gray-500 italic">Analyzed based on last 24 hrs activity.</p>
+                </div>
+                <button onclick="generateInsight()"
+                    class="mt-6 w-full py-3 bg-white/5 border border-white/10 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all">Generate
+                    New Insight</button>
+            </section>
+
+            <section class="glass-card p-8 border-brand-pink/30 hover:border-brand-pink/60 transition-all">
+                <h4 class="font-black text-sm uppercase tracking-widest text-gray-400 mb-6">How to improve 💡</h4>
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-4 p-3 bg-white/5 rounded-2xl border-l-4 border-brand-pink">
+                        <div class="text-brand-pink"><i class="fas fa-camera"></i></div>
+                        <p class="text-sm font-bold">Send more snaps daily</p>
+                    </div>
+                    <div class="flex items-center space-x-4 p-3 bg-white/5 rounded-2xl border-l-4 border-purple-400">
+                        <div class="text-purple-400"><i class="fas fa-heart"></i></div>
+                        <p class="text-sm font-bold">Pay attention to small details</p>
+                    </div>
+                    <div class="flex items-center space-x-4 p-3 bg-white/5 rounded-2xl border-l-4 border-yellow-400">
+                        <div class="text-yellow-400"><i class="fas fa-bolt"></i></div>
+                        <p class="text-sm font-bold">Reply faster during evenings</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Badges / Achievements -->
+        <section class="glass-card p-8">
+            <h4 class="font-black text-sm uppercase tracking-widest text-gray-400 mb-8 text-center">Achievements &
+                Badges 💍</h4>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+                <div class="flex flex-col items-center group cursor-pointer">
+                    <div
+                        class="w-20 h-20 bg-brand-pink/10 rounded-full flex items-center justify-center border-2 border-brand-pink shadow-[0_0_20px_rgba(225,29,72,0.3)] mb-3 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-ring text-4xl text-brand-pink"></i>
+                    </div>
+                    <span class="text-xs font-black uppercase text-gray-300">Loyal Lover</span>
+                </div>
+                <div class="flex flex-col items-center group cursor-pointer">
+                    <div
+                        class="w-20 h-20 bg-cyan-400/10 rounded-full flex items-center justify-center border-2 border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.3)] mb-3 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-bolt text-4xl text-cyan-400"></i>
+                    </div>
+                    <span class="text-xs font-black uppercase text-gray-300">Fast Replier</span>
+                </div>
+                <div class="flex flex-col items-center group cursor-pointer">
+                    <div
+                        class="w-20 h-20 bg-purple-400/10 rounded-full flex items-center justify-center border-2 border-purple-400 shadow-[0_0_20px_rgba(147,51,234,0.3)] mb-3 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-brain text-4xl text-purple-400"></i>
+                    </div>
+                    <span class="text-xs font-black uppercase text-gray-300">Memory Master</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Fun Comparison -->
+        <section
+            class="glass-card p-10 bg-gradient-to-r from-brand-pink/20 to-brand-purple/20 border-brand-pink/40 text-center">
+            <h4 class="text-2xl font-black mb-6">Who loves more today? 😏</h4>
+            <div class="flex items-center justify-center space-x-12 mb-8">
+                <div class="flex flex-col items-center">
+                    <div id="love-user-bar" class="w-6 bg-brand-pink rounded-t-full transition-all duration-1000 h-20">
+                    </div><span class="mt-2 text-[10px] font-black uppercase text-gray-400">You</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div id="love-partner-bar" class="w-6 bg-cyan-400 rounded-t-full transition-all duration-1000 h-20">
+                    </div><span class="mt-2 text-[10px] font-black uppercase text-gray-400">Partner</span>
+                </div>
+            </div>
+            <p id="fun-result" class="text-lg font-black text-white italic">"Analyzing love waves..."</p>
+            <button onclick="runFunLogic()"
+                class="mt-8 bg-white text-black py-4 px-10 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-100 transform active:scale-95 transition-all">Check
+                Now</button>
+        </section>
+
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="fixed bottom-6 left-6 right-6 z-50">
+        <div
+            class="max-w-md mx-auto bg-black/40 backdrop-blur-3xl border border-white/10 rounded-full p-2 flex items-center justify-between shadow-2xl">
+            <a href="/home"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-gray-500 hover:text-white transition-all">
+                <i class="fas fa-home text-lg mb-1"></i>
+                <span class="text-[8px] font-black uppercase tracking-tighter">Home</span>
+            </a>
+            <a href="/chat"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-gray-500 hover:text-white transition-all">
+                <i class="fas fa-comment-dots text-lg mb-1"></i>
+                <span class="text-[8px] font-black uppercase tracking-tighter">Chat</span>
+            </a>
+
+            <div class="relative -top-3">
+                <button onclick="window.location.href='/camera'"
+                    class="camera-btn w-16 h-16 rounded-full border-4 border-[#0a0514] flex items-center justify-center shadow-2xl transform active:scale-90 transition-all bg-brand-pink">
+                    <i class="fas fa-camera text-xl text-white"></i>
+                </button>
+            </div>
+
+            <a href="/insights"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-brand-pink transition-all">
+                <i class="fas fa-chart-pie text-lg mb-1"></i>
+                <span class="text-[8px] font-black uppercase tracking-tighter">Insights</span>
+            </a>
+            <a href="/profile"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-gray-500 hover:text-white transition-all">
+                <div class="w-5 h-5 rounded-full overflow-hidden border border-gray-600 mb-1 opacity-50 grayscale">
+                    <img src="/images/partner-avatar.png">
+                </div>
+                <span class="text-[8px] font-black uppercase tracking-tighter">Account</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        // Floating Hearts Gen
+        const container = document.getElementById('heart-container');
+        function createHeart() {
+            const heart = document.createElement('div'); heart.classList.add('heart');
+            heart.innerHTML = '<i class="fas fa-heart"></i>';
+            heart.style.left = Math.random() * 100 + 'vw';
+            heart.style.fontSize = Math.random() * 10 + 10 + 'px';
+            heart.style.animationDuration = Math.random() * 5 + 5 + 's';
+            heart.style.animationDelay = -Math.random() * 10 + 's';
+            container.appendChild(heart);
+            setTimeout(() => heart.remove(), 10000);
+        }
+        setInterval(createHeart, 1000);
+
+        // Progress Animations
+        window.onload = () => {
+            const uCircle = document.getElementById('user-circle');
+            const pCircle = document.getElementById('partner-circle');
+            // Offset logic: circ = 2 * PI * r (approx 440)
+            uCircle.style.strokeDashoffset = 440 - (440 * 0.77);
+            pCircle.style.strokeDashoffset = 440 - (440 * 0.80);
+            generateInsight();
+        };
+
+        const aiInsights = [
+            "You reply faster but forget details 😅",
+            "Your partner sends more snaps tonight ❤️",
+            "You both have 90% bond compatibility! 🔥",
+            "A surprise gift would make her day today 🎁",
+            "Try missing her a little less, send a hug! 🤗"
+        ];
+        function generateInsight() {
+            document.getElementById('ai-insight').innerHTML = aiInsights[Math.floor(Math.random() * aiInsights.length)];
+        }
+
+        async function loadBehaviorInsights() {
+            try {
+                const res = await fetch('/api/insights/behavior');
+                const data = await res.json();
+                const u = data.user;
+                const p = data.partner;
+
+                // Update UI elements
+                document.getElementById('u-speed').innerText = u.speed;
+                document.getElementById('p-speed').innerText = p.speed;
+                document.getElementById('u-missed').innerText = u.missed;
+                document.getElementById('p-missed').innerText = p.missed;
+                document.getElementById('u-snaps').innerText = u.snaps;
+                document.getElementById('p-snaps').innerText = p.snaps;
+                document.getElementById('u-acc').innerText = u.accuracy;
+                document.getElementById('p-acc').innerText = p.accuracy;
+
+                // Tags logic
+                const speedTag = document.getElementById('speed-tag');
+                if (parseFloat(u.speed) < parseFloat(p.speed)) {
+                    speedTag.innerText = "You're faster ⚡"; speedTag.className = "mt-4 text-[10px] text-green-400 font-bold";
+                } else {
+                    speedTag.innerText = "Partner is faster ⚡"; speedTag.className = "mt-4 text-[10px] text-yellow-400 font-bold";
+                }
+
+                const missedTag = document.getElementById('missed-tag');
+                if (u.missed > p.missed) {
+                    missedTag.innerText = "Pay attention! 😬"; missedTag.className = "mt-4 text-[10px] text-red-400 font-bold";
+                } else {
+                    missedTag.innerText = "You're all caught up! ✨"; missedTag.className = "mt-4 text-[10px] text-green-400 font-bold";
+                }
+
+                const snapsTag = document.getElementById('snaps-tag');
+                if (u.snaps < p.snaps) {
+                    snapsTag.innerText = "Send more snaps ❤️"; snapsTag.className = "mt-4 text-[10px] text-gray-400 font-bold";
+                } else {
+                    snapsTag.innerText = "Snap king/queen! 👑"; snapsTag.className = "mt-4 text-[10px] text-cyan-400 font-bold";
+                }
+
+                const accTag = document.getElementById('acc-tag');
+                if (u.accuracy > p.accuracy) {
+                    accTag.innerText = "Memory master! 🧠"; accTag.className = "mt-4 text-[10px] text-pink-400 font-bold";
+                } else {
+                    accTag.innerText = "Close game! 🧠"; accTag.className = "mt-4 text-[10px] text-gray-400 font-bold";
+                }
+
+            } catch (e) { console.error("Failed to load insights", e); }
+        }
+
+        window.onload = () => {
+            const uCircle = document.getElementById('user-circle');
+            const pCircle = document.getElementById('partner-circle');
+            if (uCircle) uCircle.style.strokeDashoffset = 440 - (440 * 0.77);
+            if (pCircle) pCircle.style.strokeDashoffset = 440 - (440 * 0.80);
+            generateInsight();
+            loadBehaviorInsights();
+        };
+
+        function runFunLogic() {
+            const uBar = document.getElementById('love-user-bar');
+            const pBar = document.getElementById('love-partner-bar');
+            const res = document.getElementById('fun-result');
+
+            const uVal = Math.random() * 100 + 50;
+            const pVal = Math.random() * 100 + 50;
+
+            uBar.style.height = uVal + 'px';
+            pBar.style.height = pVal + 'px';
+
+            res.innerHTML = uVal > pVal ? "You love more! 🏆 You win today ❤️" : "Partner loves more! 😘 Get her a flower.";
+            triggerConfetti();
+        }
+
+        function triggerConfetti() {
+            for (let i = 0; i < 30; i++) {
+                const c = document.createElement('div');
+                c.className = 'confetti';
+                c.style.left = Math.random() * 100 + 'vw';
+                c.style.backgroundColor = ['#E11D48', '#9333EA', '#06b6d4'][Math.floor(Math.random() * 3)];
+                c.style.animationDuration = Math.random() * 2 + 1 + 's';
+                document.body.appendChild(c);
+                setTimeout(() => c.remove(), 3000);
+            }
+        }
+
+        function vibrateBtn() { navigator.vibrate?.(40); alert("Camera Captured! ✨"); }
+    </script>
+</body>
+
+</html>

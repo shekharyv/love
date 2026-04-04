@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Settings | LoveSync ❤️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        'brand-purple': '#4D128B',
+                        'brand-pink': '#E11D48',
+                        'neon-pink': '#FF007F',
+                        'neon-purple': '#9D50BB',
+                        'safe-green': '#10b981',
+                        'danger-red': '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .heart {
+            position: absolute;
+            color: #FF1493;
+            pointer-events: none;
+            animation: rise 6s infinite ease-in;
+            opacity: 0;
+            z-index: 0;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translateY(100vh) scale(0.5);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(-10vh) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+        }
+
+        .toggle-switch {
+            width: 46px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 100px;
+            position: relative;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-active {
+            background: #E11D48 !important;
+        }
+
+        .toggle-active::after {
+            left: 25px !important;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #E11D48;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 100px;
+            font-weight: 800;
+            font-size: 14px;
+            box-shadow: 0 10px 40px rgba(225, 29, 72, 0.4);
+            z-index: 100;
+            display: none;
+            animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popUp {
+            from {
+                transform: translateX(-50%) translateY(50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            display: none;
+            items-center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-active {
+            display: flex;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .shake-danger {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-[#0a0514] text-white overflow-x-hidden font-sans min-h-screen">
+
+    <div id="toast" class="toast">Settings Saved successfully 🔒</div>
+    <div id="heart-container" class="fixed inset-0 pointer-events-none z-0"></div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="modal-overlay px-6">
+        <div class="glass-card max-w-sm w-full p-8 text-center space-y-6">
+            <div
+                class="w-16 h-16 bg-danger-red/10 rounded-full flex items-center justify-center mx-auto text-danger-red text-2xl">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 id="modal-title" class="font-black text-xl">Are you sure?</h3>
+            <p id="modal-desc" class="text-sm text-gray-400 font-bold leading-relaxed">This action cannot be undone. All
+                your data will be permanently deleted 💔.</p>
+            <div class="flex flex-col space-y-3">
+                <button onclick="executeAction()"
+                    class="w-full bg-danger-red py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-red-600 transition-all">Proceed</button>
+                <button onclick="closeModal()"
+                    class="w-full bg-white/5 py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-white/10 transition-all">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header
+        class="sticky top-0 z-50 bg-[#0a0514]/60 backdrop-blur-2xl border-b border-white/5 px-6 py-6 flex items-center justify-between">
+        <a href="/profile"
+            class="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        <div class="flex items-center space-x-2">
+            <i class="fas fa-lock text-brand-pink text-sm"></i>
+            <h1 class="font-black text-lg tracking-tight">Privacy Settings 🔒</h1>
+        </div>
+        <button
+            class="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all">
+            <i class="fas fa-info text-xs text-brand-pink"></i>
+        </button>
+    </header>
+
+    <main class="max-w-xl mx-auto px-6 py-10 space-y-12 relative z-10 pb-40">
+
+        <!-- Privacy Overview -->
+        <section
+            class="glass-card p-8 bg-gradient-to-r from-brand-pink/10 to-brand-purple/10 border-brand-pink/20 relative overflow-hidden group">
+            <div
+                class="absolute -right-10 -top-10 w-32 h-32 bg-brand-pink/5 blur-3xl group-hover:bg-brand-pink/10 transition-all">
+            </div>
+            <div class="flex items-center space-x-4">
+                <div
+                    class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-brand-pink text-2xl shadow-xl">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-black tracking-tight">Your privacy matters ❤️</h2>
+                    <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Manage what your partner
+                        can see</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Profile Privacy -->
+        <section class="space-y-6">
+            <h3
+                class="font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 pl-4 mb-4 border-l-4 border-brand-pink">
+                Profile Privacy</h3>
+            <div class="glass-card divide-y divide-white/5 overflow-hidden">
+                <div class="p-6 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-bold">Profile Visibility</p>
+                        <p class="text-[9px] text-gray-500 font-black uppercase tracking-widest mt-1 italic">Current:
+                            Only Partner</p>
+                    </div>
+                    <select
+                        class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest focus:outline-none focus:border-brand-pink">
+                        <option>Only Partner</option>
+                        <option>Public</option>
+                        <option>Private</option>
+                    </select>
+                </div>
+                <div class="p-6 flex items-center justify-between">
+                    <span class="text-sm font-bold">Show Profile Picture</span>
+                    <div class="toggle-switch toggle-active" onclick="this.classList.toggle('toggle-active')"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Relationship Data Privacy -->
+        <section class="space-y-6">
+            <h3
+                class="font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 pl-4 mb-4 border-l-4 border-purple-500">
+                Relationship Data</h3>
+            <div class="glass-card divide-y divide-white/5 overflow-hidden">
+                <div class="p-6 flex items-center justify-between">
+                    <span class="text-sm font-bold text-gray-200">Show Love Score ❤️</span>
+                    <div class="toggle-switch toggle-active" onclick="this.classList.toggle('toggle-active')"></div>
+                </div>
+                <div class="p-6 flex items-center justify-between">
+                    <span class="text-sm font-bold text-gray-200">Show Streak 🔥</span>
+                    <div class="toggle-switch toggle-active" onclick="this.classList.toggle('toggle-active')"></div>
+                </div>
+                <div class="p-6 flex items-center justify-between">
+                    <span class="text-sm font-bold text-gray-200">Show Quiz Results 🧠</span>
+                    <div class="toggle-switch toggle-active" onclick="this.classList.toggle('toggle-active')"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Activity Privacy -->
+        <section class="space-y-6">
+            <h3
+                class="font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 pl-4 mb-4 border-l-4 border-cyan-500">
+                Activity Privacy</h3>
+            <div class="glass-card divide-y divide-white/5 overflow-hidden">
+                <div class="p-6 flex items-center justify-between">
+                    <span class="text-sm font-bold">Show Last Seen 👀</span>
+                    <div class="toggle-switch toggle-active" onclick="this.classList.toggle('toggle-active')"></div>
+                </div>
+                <div class="p-6 flex items-center justify-between">
+                    <span class="text-sm font-bold">Show Online Status 🟢</span>
+                    <div class="toggle-switch toggle-active" onclick="this.classList.toggle('toggle-active')"></div>
+                </div>
+                <div class="p-6 flex items-center justify-between">
+                    <span class="text-sm font-bold">Show Typing Indicator ⌨️</span>
+                    <div class="toggle-switch toggle-active" onclick="this.classList.toggle('toggle-active')"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Snap & Chat Privacy -->
+        <section class="space-y-6">
+            <h3
+                class="font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 pl-4 mb-4 border-l-4 border-yellow-500">
+                Snap & Chat Privacy</h3>
+            <div class="glass-card divide-y divide-white/5 overflow-hidden">
+                <div class="p-6 flex items-center justify-between">
+                    <span class="text-sm font-bold text-brand-pink">Allow Screenshots 📸</span>
+                    <div class="toggle-switch" onclick="this.classList.toggle('toggle-active')"></div>
+                </div>
+                <div class="p-6 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-bold">Auto-delete Snaps ⏳</p>
+                        <p class="text-[9px] text-gray-500 font-bold tracking-widest mt-1">Recommended: After viewing
+                        </p>
+                    </div>
+                    <select
+                        class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest focus:outline-none">
+                        <option>After viewing</option>
+                        <option>After 24 hours</option>
+                        <option>Never</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- Notifications Privacy -->
+        <section class="space-y-6">
+            <h3
+                class="font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 pl-4 mb-4 border-l-4 border-brand-pink">
+                Notifications</h3>
+            <div class="glass-card divide-y divide-white/5 overflow-hidden">
+                <div class="p-6 flex items-center justify-between">
+                    <span class="text-sm font-bold">Hide content in notifications</span>
+                    <div class="toggle-switch toggle-active" onclick="this.classList.toggle('toggle-active')"></div>
+                </div>
+                <div class="p-6 flex items-center justify-between">
+                    <span class="text-sm font-bold">Private notifications</span>
+                    <div class="toggle-switch" onclick="this.classList.toggle('toggle-active')"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Block / Safety Section -->
+        <section class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+            <button onclick="confirmAction('BLOCK')"
+                class="flex-1 glass-card p-6 flex flex-col items-center justify-center space-y-4 group hover:bg-red-600/10 transition-all">
+                <i class="fas fa-user-slash text-danger-red group-hover:scale-110 transition-all"></i>
+                <span class="text-xs font-black uppercase tracking-widest text-danger-red">Block Partner 🚫</span>
+            </button>
+            <button onclick="confirmAction('REPORT')"
+                class="flex-1 glass-card p-6 flex flex-col items-center justify-center space-y-4 group hover:bg-yellow-600/10 transition-all">
+                <i class="fas fa-flag text-yellow-500 group-hover:scale-110 transition-all"></i>
+                <span class="text-xs font-black uppercase tracking-widest text-yellow-500">Report User ⚠️</span>
+            </button>
+        </section>
+
+        <!-- Data Control Section -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button onclick="showToast('Data preparation started 📥')"
+                class="glass-card p-6 text-center space-y-3 hover:bg-brand-pink/10 transition-all">
+                <i class="fas fa-download text-brand-pink text-xl"></i>
+                <p class="text-[9px] font-black uppercase tracking-widest">Download Data</p>
+            </button>
+            <button onclick="confirmAction('DELETE_DATA')"
+                class="glass-card p-6 text-center space-y-3 hover:bg-danger-red/10 transition-all">
+                <i class="fas fa-trash-alt text-danger-red text-xl"></i>
+                <p class="text-[9px] font-black uppercase tracking-widest">Wipe Media</p>
+            </button>
+            <button class="glass-card p-6 text-center space-y-3 hover:bg-white/10 transition-all">
+                <i class="fas fa-history text-gray-400 text-xl"></i>
+                <p class="text-[9px] font-black uppercase tracking-widest text-gray-500">Activity Log</p>
+            </button>
+        </section>
+
+        <!-- Danger Zone (Important) -->
+        <section class="space-y-6 pt-10">
+            <div
+                class="p-8 bg-danger-red/10 border-2 border-danger-red/30 rounded-[2rem] relative overflow-hidden group">
+                <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-danger-red/5 blur-3xl"></div>
+                <h4 class="text-danger-red font-black text-xs uppercase tracking-[0.2em] mb-4">Danger Zone 💔</h4>
+                <p class="text-xs text-gray-400 font-bold mb-8 leading-relaxed">Deleting your data will remove all
+                    chats, snaps, and memories permanently. This cannot be undone.</p>
+                <button id="delete-btn" onclick="confirmAction('DELETE_ACCOUNT')"
+                    class="w-full bg-danger-red py-4 rounded-xl font-black uppercase text-xs tracking-widest shadow-[0_15px_40px_rgba(239,68,68,0.3)] hover:shadow-[0_15px_50px_rgba(239,68,68,0.5)] transform active:scale-95 transition-all">
+                    Delete Account 🗑️
+                </button>
+            </div>
+        </section>
+
+        <!-- Save Button -->
+        <section class="pt-10">
+            <button onclick="saveSettings()"
+                class="w-full bg-btn-gradient py-6 rounded-[2.5rem] font-black text-sm uppercase tracking-[0.3em] shadow-[0_20px_50px_rgba(225,29,72,0.4)] hover:shadow-[0_20px_60px_rgba(225,29,72,0.6)] transform active:scale-95 transition-all">
+                Save Privacy Settings 🔒
+            </button>
+        </section>
+
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="fixed bottom-6 left-6 right-6 z-50">
+        <div
+            class="max-w-md mx-auto bg-black/40 backdrop-blur-3xl border border-white/10 rounded-full p-2 flex items-center justify-between shadow-2xl">
+            <a href="/home"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-gray-500 hover:text-white transition-all"><i
+                    class="fas fa-home text-lg mb-1"></i><span
+                    class="text-[8px] font-black uppercase tracking-tighter">Home</span></a>
+            <a href="/chat"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-gray-500 hover:text-white transition-all"><i
+                    class="fas fa-comment-dots text-lg mb-1"></i><span
+                    class="text-[8px] font-black uppercase tracking-tighter">Chat</span></a>
+            <div class="relative -top-3"><button
+                    class="w-16 h-16 rounded-full border-4 border-[#0a0514] flex items-center justify-center shadow-2xl bg-brand-pink"><i
+                        class="fas fa-camera text-xl text-white"></i></button></div>
+            <a href="/insights"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-gray-500 hover:text-white transition-all"><i
+                    class="fas fa-chart-pie text-lg mb-1"></i><span
+                    class="text-[8px] font-black uppercase tracking-tighter">Insights</span></a>
+            <a href="/profile"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-brand-pink transition-all">
+                <div class="w-5 h-5 rounded-full overflow-hidden border border-brand-pink mb-1"><img
+                        src="/images/partner-avatar.png"></div><span
+                    class="text-[8px] font-black uppercase tracking-tighter">Account</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        // Floating Hearts Gen
+        const container = document.getElementById('heart-container');
+        function createHeart() {
+            const heart = document.createElement('div'); heart.classList.add('heart');
+            heart.innerHTML = '<i class="fas fa-heart"></i>'; heart.style.left = Math.random() * 100 + 'vw';
+            heart.style.fontSize = Math.random() * 10 + 10 + 'px'; heart.style.animationDuration = Math.random() * 5 + 5 + 's';
+            container.appendChild(heart);
+            setTimeout(() => heart.remove(), 10000);
+        }
+        setInterval(createHeart, 1000);
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerHTML = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
+        }
+
+        function saveSettings() {
+            navigator.vibrate?.(40);
+            showToast("Privacy settings saved successfully 🔒");
+            setTimeout(() => { window.location.href = '/profile'; }, 2000);
+        }
+
+        let currentAction = '';
+        function confirmAction(type) {
+            currentAction = type;
+            const modal = document.getElementById('confirm-modal');
+            const title = document.getElementById('modal-title');
+            const desc = document.getElementById('modal-desc');
+
+            if (type === 'DELETE_ACCOUNT') {
+                title.innerText = "Delete Account?";
+                desc.innerText = "This will wipe ALL chats, snaps, and memories forever. Partner will also be disconnected.💔";
+            } else if (type === 'BLOCK') {
+                title.innerText = "Block Partner?";
+                desc.innerText = "Blocking Partner will stop all chats and insights updates. You can unblock later from settings.🚫";
+            } else if (type === 'DELETE_DATA') {
+                title.innerText = "Wipe Media?";
+                desc.innerText = "This will delete all shared snaps and photos but keep your chat history.🗑️";
+            } else {
+                title.innerText = "Are you sure?";
+            }
+
+            modal.classList.add('modal-active');
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('confirm-modal').classList.remove('modal-active');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function executeAction() {
+            closeModal();
+            showToast(`Action ${currentAction} executed! ⚡`);
+            if (currentAction === 'DELETE_ACCOUNT') {
+                const btn = document.getElementById('delete-btn');
+                btn.parentElement.classList.add('shake-danger');
+                setTimeout(() => window.location.href = '/auth', 2000);
+            }
+        }
+    </script>
+</body>
+
+</html>

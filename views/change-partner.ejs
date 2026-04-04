@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Change Partner | LoveSync ❤️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        'brand-purple': '#4D128B',
+                        'brand-pink': '#E11D48',
+                        'neon-pink': '#FF007F',
+                        'neon-purple': '#9D50BB',
+                        'warning-red': '#cc1e2e',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .heart {
+            position: absolute;
+            color: #FF1493;
+            pointer-events: none;
+            animation: rise 6s infinite ease-in;
+            opacity: 0;
+            z-index: 0;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translateY(100vh) scale(0.5);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(-10vh) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+        }
+
+        .warning-glow {
+            box-shadow: 0 0 20px rgba(204, 30, 46, 0.3);
+            border-color: rgba(204, 30, 46, 0.4);
+        }
+
+        .shake-warning {
+            animation: shake 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+
+        .pulse-red {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.4;
+            }
+
+            50% {
+                opacity: 0.8;
+            }
+
+            100% {
+                opacity: 0.4;
+            }
+        }
+
+        .toggle-section {
+            display: none;
+        }
+
+        .active-section {
+            display: block;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .btn-disabled {
+            opacity: 0.4;
+            pointer-events: none;
+            grayscale: 100%;
+        }
+
+        #heart-connect {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 300px;
+            height: 300px;
+            transform: translate(-50%, -50%) scale(0);
+            background: radial-gradient(circle, rgba(225, 29, 72, 0.4) 0%, transparent 70%);
+            display: flex;
+            items-center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .heart-animation {
+            animation: heartPop 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes heartPop {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+
+            50% {
+                transform: translate(-50%, -50%) scale(1.5);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-[#0a0514] text-white overflow-x-hidden font-sans min-h-screen">
+
+    <div id="heart-container" class="fixed inset-0 pointer-events-none z-0"></div>
+    <div id="heart-connect"><i class="fas fa-heart text-7xl text-brand-pink"></i></div>
+
+    <!-- Header -->
+    <header
+        class="sticky top-0 z-50 bg-[#0a0514]/60 backdrop-blur-2xl border-b border-white/5 px-6 py-6 flex items-center justify-between">
+        <a href="/profile"
+            class="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        <h1 class="font-black text-lg tracking-tight">Change Partner 🔄</h1>
+        <button
+            class="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all">
+            <i class="fas fa-question text-xs text-gray-500"></i>
+        </button>
+    </header>
+
+    <main class="max-w-xl mx-auto px-6 py-10 space-y-10 relative z-10 pb-40">
+
+        <!-- Step 1: Warnings & Disconnect -->
+        <section id="step-disconnect" class="active-section space-y-8">
+            <div class="glass-card p-6 warning-glow relative overflow-hidden">
+                <div class="absolute inset-0 bg-red-600/5 pulse-red"></div>
+                <div class="flex items-start space-x-4">
+                    <div
+                        class="w-12 h-12 bg-red-600/20 rounded-xl flex items-center justify-center text-red-500 text-2xl flex-shrink-0">
+                        <i class="fas fa-heart-broken"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm uppercase tracking-widest text-red-400 mb-2">Wait, think twice! 💔
+                        </h3>
+                        <p class="text-xs text-gray-400 font-bold leading-relaxed mb-1">Changing your partner will reset
+                            your love data, chats, streaks, and memories.</p>
+                        <p
+                            class="text-[10px] text-red-500/80 font-black uppercase tracking-tighter italic font-black uppercase">
+                            This action cannot be undone</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card p-8 text-center relative">
+                <div class="absolute top-4 right-4 bg-yellow-500/10 border border-yellow-500/30 px-3 py-1 rounded-full">
+                    <p class="text-[8px] font-black uppercase text-yellow-500 tracking-widest">Linked</p>
+                </div>
+                <div
+                    class="w-24 h-24 rounded-full border-4 border-brand-pink mx-auto mb-6 overflow-hidden shadow-[0_0_30px_rgba(225,29,72,0.3)]">
+                    <img src="/images/partner-avatar.png" class="w-full h-full object-cover">
+                </div>
+                <h4 class="text-2xl font-black mb-1">Partner <span class="text-brand-pink">❤️</span></h4>
+                <p class="text-xs text-gray-500 font-bold uppercase tracking-widest">Together for 120 days 💑</p>
+
+                <div id="safety-box" class="mt-10 p-6 bg-black/40 rounded-2xl border border-white/5 space-y-4">
+                    <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest">Type "REMOVE" to confirm
+                    </p>
+                    <input type="text" id="confirm-input" placeholder="Type here..."
+                        class="w-full bg-white/5 border border-white/10 px-4 py-4 rounded-xl text-center font-black tracking-widest uppercase focus:outline-none focus:border-red-500 transition-all">
+
+                    <label class="flex items-center justify-center space-x-2 cursor-pointer pt-2 group">
+                        <input type="checkbox" id="confirm-check"
+                            class="form-checkbox bg-transparent border-white/20 rounded text-red-500">
+                        <span
+                            class="text-[9px] font-black uppercase text-gray-500 group-hover:text-gray-300 transition-all">I
+                            understand all data will be lost forever</span>
+                    </label>
+
+                    <button id="disconnect-btn" onclick="disconnectPartner()"
+                        class="w-full bg-red-600/10 border border-red-600/30 py-4 rounded-xl text-red-500 font-black text-xs uppercase tracking-widest btn-disabled hover:bg-red-600 hover:text-white transition-all">
+                        Disconnect Partner 💔
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <p class="text-[10px] text-gray-600 font-bold uppercase tracking-widest mt-4">
+                    🛡️ Global Safety System <br>
+                    Cooldown: <span class="text-gray-400">Can only change once in 7 days</span>
+                </p>
+            </div>
+        </section>
+
+        <!-- Step 2: Invite/Connect -->
+        <section id="step-connect" class="toggle-section space-y-10">
+            <div class="text-center space-y-4">
+                <div
+                    class="w-20 h-20 bg-brand-pink/10 rounded-full flex items-center justify-center mx-auto text-brand-pink text-3xl shadow-[0_0_30px_rgba(225,29,72,0.2)]">
+                    <i class="fas fa-heart pulse-red"></i>
+                </div>
+                <h2 class="text-2xl font-black tracking-tight">Connect New Partner</h2>
+                <p class="text-xs text-gray-500 font-black uppercase tracking-widest">Complete your bond today ❤️</p>
+            </div>
+
+            <div class="glass-card p-8 space-y-6">
+                <div>
+                    <label class="block text-[10px] font-black uppercase text-gray-500 mb-3 ml-4 tracking-widest">Enter
+                        Partner Details</label>
+                    <div class="relative">
+                        <input type="text" placeholder="Email or Username"
+                            class="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl font-bold text-sm focus:border-brand-pink focus:outline-none transition-all">
+                        <button
+                            class="absolute right-4 top-1/2 -translate-y-1/2 text-brand-pink text-xs font-black uppercase tracking-widest">Check</button>
+                    </div>
+                </div>
+
+                <div class="relative py-4">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-white/5"></div>
+                    </div>
+                    <div class="relative flex justify-center"><span
+                            class="bg-[#0a0514] px-4 text-[10px] font-black text-gray-600 uppercase tracking-widest">Or
+                            Secure Invite</span></div>
+                </div>
+
+                <button onclick="generateLink()"
+                    class="w-full bg-white/5 border border-white/10 py-5 rounded-2xl flex items-center justify-between px-8 hover:bg-white/10 transition-all group">
+                    <div class="flex items-center space-x-4">
+                        <i class="fas fa-link text-brand-pink"></i>
+                        <span class="text-xs font-black uppercase tracking-widest">Generate Invite Link ❤️</span>
+                    </div>
+                    <i
+                        class="fas fa-chevron-right text-gray-500 text-[10px] group-hover:translate-x-1 transition-all"></i>
+                </button>
+
+                <div id="invite-box" class="hidden animate-fadeIn">
+                    <div class="relative mt-4">
+                        <input type="text" id="invite-link" readonly value="lovesync.app/invite/9k2j0z-L"
+                            class="w-full bg-black/40 border border-brand-pink/30 px-6 py-4 rounded-2xl font-mono text-[10px] text-brand-pink text-center">
+                        <button onclick="copyToClipboard()"
+                            class="mt-4 w-full bg-brand-pink text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest">Copy
+                            to Clipboard 📋</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <button id="request-btn" onclick="sendRequest()"
+                    class="w-full bg-btn-gradient py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-[0_15px_40px_rgba(225,29,72,0.3)] hover:scale-105 transition-all">
+                    Send Partner Request 💌
+                </button>
+                <p class="text-center text-[10px] font-black text-gray-600 uppercase tracking-widest">Safety Tip: Only
+                    connect with someone you trust</p>
+            </div>
+        </section>
+
+        <!-- Step 3: Pending Request -->
+        <section id="step-pending" class="toggle-section space-y-10">
+            <div class="glass-card p-10 text-center space-y-8 relative overflow-hidden">
+                <div class="absolute -top-10 -left-10 w-40 h-40 bg-brand-pink/5 blur-3xl"></div>
+                <div
+                    class="relative w-24 h-24 bg-white/5 border border-white/10 rounded-full flex items-center justify-center mx-auto">
+                    <i class="fas fa-spinner animate-spin text-3xl text-brand-pink"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-black mb-2">Waiting for Accept ❤️</h2>
+                    <p class="text-xs text-gray-500 font-bold uppercase tracking-widest">Partner has been invited to
+                        connect</p>
+                </div>
+                <div class="bg-black/20 p-6 rounded-2xl border border-white/5">
+                    <p class="text-[10px] font-black uppercase text-brand-pink tracking-[0.2em] mb-4">⏱️ System Cooldown
+                    </p>
+                    <p id="countdown" class="text-2xl font-black tabular-nums tracking-widest">07:00:00:00</p>
+                    <p class="text-[8px] text-gray-600 font-black uppercase mt-2">D : H : M : S</p>
+                </div>
+                <button onclick="cancelRequest()"
+                    class="text-xs font-black uppercase text-gray-500 hover:text-red-500 transition-all border-b border-gray-700 tracking-widest">Cancel
+                    Request</button>
+            </div>
+
+            <button onclick="simulateAccept()"
+                class="w-full py-4 text-[10px] font-black uppercase text-gray-700 tracking-widest border border-dashed border-gray-800 rounded-xl hover:text-gray-500 transition-all">
+                DEBUG: Simulate Accept (Partner clicks link) 🤫
+            </button>
+        </section>
+
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="fixed bottom-6 left-6 right-6 z-50">
+        <div
+            class="max-w-md mx-auto bg-black/40 backdrop-blur-3xl border border-white/10 rounded-full p-2 flex items-center justify-between shadow-2xl">
+            <a href="/home"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-gray-500 hover:text-white transition-all"><i
+                    class="fas fa-home text-lg mb-1"></i><span
+                    class="text-[8px] font-black uppercase tracking-tighter">Home</span></a>
+            <a href="/chat"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-gray-500 hover:text-white transition-all"><i
+                    class="fas fa-comment-dots text-lg mb-1"></i><span
+                    class="text-[8px] font-black uppercase tracking-tighter">Chat</span></a>
+            <div class="relative -top-3"><button
+                    class="w-16 h-16 rounded-full border-4 border-[#0a0514] flex items-center justify-center shadow-2xl bg-brand-pink"><i
+                        class="fas fa-camera text-xl text-white"></i></button></div>
+            <a href="/insights"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-gray-500 hover:text-white transition-all"><i
+                    class="fas fa-chart-pie text-lg mb-1"></i><span
+                    class="text-[8px] font-black uppercase tracking-tighter">Insights</span></a>
+            <a href="/profile"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-brand-pink transition-all">
+                <div class="w-5 h-5 rounded-full overflow-hidden border border-brand-pink mb-1"><img
+                        src="/images/partner-avatar.png"></div><span
+                    class="text-[8px] font-black uppercase tracking-tighter">Account</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        // Floating Hearts Gen
+        const container = document.getElementById('heart-container');
+        function createHeart() {
+            const heart = document.createElement('div'); heart.classList.add('heart');
+            heart.innerHTML = '<i class="fas fa-heart"></i>'; heart.style.left = Math.random() * 100 + 'vw';
+            heart.style.fontSize = Math.random() * 10 + 10 + 'px'; heart.style.animationDuration = Math.random() * 5 + 5 + 's';
+            container.appendChild(heart);
+            setTimeout(() => heart.remove(), 10000);
+        }
+        setInterval(createHeart, 1000);
+
+        // Validation Logic
+        const confirmInput = document.getElementById('confirm-input');
+        const confirmCheck = document.getElementById('confirm-check');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+
+        function validateInputs() {
+            if (confirmInput.value === 'REMOVE' && confirmCheck.checked) {
+                disconnectBtn.classList.remove('btn-disabled');
+            } else {
+                disconnectBtn.classList.add('btn-disabled');
+            }
+        }
+
+        confirmInput.addEventListener('input', validateInputs);
+        confirmCheck.addEventListener('change', validateInputs);
+
+        function disconnectPartner() {
+            if (confirmInput.value !== 'REMOVE') {
+                const box = document.getElementById('safety-box');
+                box.classList.add('shake-warning');
+                setTimeout(() => box.classList.remove('shake-warning'), 400);
+                return;
+            }
+            alert("Partnership Disconnected 💔 Data wipe complete.");
+            document.getElementById('step-disconnect').classList.remove('active-section');
+            document.getElementById('step-connect').classList.add('active-section');
+        }
+
+        function generateLink() {
+            document.getElementById('invite-box').classList.remove('hidden');
+        }
+
+        function copyToClipboard() {
+            const link = document.getElementById('invite-link');
+            link.select();
+            document.execCommand('copy');
+            alert("Invite link copied! ❤️");
+        }
+
+        function sendRequest() {
+            document.getElementById('step-connect').classList.remove('active-section');
+            document.getElementById('step-pending').classList.add('active-section');
+            startCooldown();
+        }
+
+        function cancelRequest() {
+            document.getElementById('step-pending').classList.remove('active-section');
+            document.getElementById('step-connect').classList.add('active-section');
+        }
+
+        function startCooldown() {
+            let days = 7, hours = 0, mins = 0, secs = 0;
+            const display = document.getElementById('countdown');
+            setInterval(() => {
+                if (secs > 0) secs--; else { secs = 59; mins--; }
+                display.innerText = `07:00:00:${secs.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function simulateAccept() {
+            const heart = document.getElementById('heart-connect');
+            heart.classList.add('heart-animation');
+            heart.style.display = 'flex';
+
+            setTimeout(() => {
+                alert("You are now connected to Partner! 💑 Welcome to your new journey.");
+                window.location.href = '/home';
+            }, 1000);
+        }
+    </script>
+</body>
+
+</html>

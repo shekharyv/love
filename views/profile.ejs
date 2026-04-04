@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Connect | LoveSync ❤️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap');
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #0a0514;
+            color: #fff;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 2.5rem;
+        }
+
+        .premium-glow {
+            box-shadow: 0 0 50px rgba(225, 29, 72, 0.15);
+        }
+
+        .shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shimmer::after {
+            content: '';
+            position: absolute;
+            top: -150%;
+            left: -150%;
+            width: 300%;
+            height: 300%;
+            background: linear-gradient(to bottom right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0) 100%);
+            transform: rotate(45deg);
+            animation: shimmerEffect 4s infinite;
+        }
+
+        @keyframes shimmerEffect {
+            0% {
+                transform: translateX(-100%) rotate(45deg);
+            }
+
+            100% {
+                transform: translateX(100%) rotate(45deg);
+            }
+        }
+
+        .badge-grid div:hover {
+            transform: translateY(-5px) scale(1.05);
+            background: rgba(225, 29, 72, 0.1);
+            border-color: rgba(225, 29, 72, 0.3);
+            box-shadow: 0 10px 30px rgba(225, 29, 72, 0.2);
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2px;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: linear-gradient(to bottom, #E11D48, #9333EA);
+            border-radius: 10px;
+        }
+
+        .nav-active {
+            color: #E11D48;
+            filter: drop-shadow(0 0 8px rgba(225, 29, 72, 0.5));
+        }
+
+        .heart {
+            position: absolute;
+            color: rgba(225, 29, 72, 0.2);
+            pointer-events: none;
+            z-index: 0;
+            animation: rise 10s infinite linear;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translateY(110vh) scale(0.5);
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-10vh) scale(1.2);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen pb-40">
+    <div id="heart-container" class="fixed inset-0 pointer-events-none z-0"></div>
+
+    <div id="syncSection" class="<%= user.partnerId ? 'hidden' : '' %> grid place-items-center min-h-screen p-6">
+        <div class="w-full max-w-xl p-10 glass-card premium-glow relative overflow-hidden">
+            <h2 class="text-3xl font-black text-white text-center mb-10 italic">Connect with your partner <span
+                    class="text-brand-pink text-4xl">❤️</span></h2>
+            <div class="mb-10 text-center glass-card bg-black/20 p-8 border-white/5">
+                <p class="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] mb-4">Your Secret Love Code
+                </p>
+                <div class="flex items-center justify-center gap-6">
+                    <span id="myCode" class="text-5xl font-black text-white tracking-[0.2em] italic">------</span>
+                    <button onclick="copyCode()"
+                        class="w-12 h-12 glass-card flex items-center justify-center text-brand-pink text-xl hover:scale-110 transition-all"><i
+                            class="far fa-copy"></i></button>
+                </div>
+            </div>
+            <div id="connectBox">
+                <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-4 ml-4">Enter Partner Code
+                    💌</p>
+                <input id="partnerCode" type="text" placeholder="E.G. KO51VX" maxlength="6"
+                    class="w-full p-6 text-center rounded-[2rem] bg-black/40 text-white border-2 border-white/5 text-2xl font-black tracking-[0.3em] uppercase focus:border-brand-pink transition-all outline-none" />
+                <button id="connect-btn" onclick="connectPartner()"
+                    class="w-full mt-8 py-6 rounded-[2rem] bg-gradient-to-r from-brand-pink to-purple-600 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-brand-pink/20 hover:scale-[1.02] active:scale-95 transition-all">Connect
+                    Now ❤️</button>
+                <p id="statusText" class="text-center text-red-400 mt-6 text-[10px] font-black tracking-widest h-4"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MASTER PROFILE DASHBOARD -->
+    <div id="profileSection"
+        class="<%= user.partnerId ? '' : 'hidden' %> w-full max-w-2xl mx-auto px-6 py-10 space-y-10 relative z-10">
+
+        <!-- HEADER -->
+        <header class="flex items-center justify-between">
+            <button onclick="window.history.back()" class="w-12 h-12 glass-card flex items-center justify-center"><i
+                    class="fas fa-chevron-left"></i></button>
+            <h1 class="font-black text-xl italic tracking-tight">Your Profile ❤️</h1>
+            <button onclick="toggleSettings()"
+                class="w-12 h-12 glass-card flex items-center justify-center text-gray-400"><i
+                    class="fas fa-cog"></i></button>
+        </header>
+
+        <!-- MAIN PROFILE CARD -->
+        <section class="glass-card p-10 shimmer text-center border-white/10 relative">
+            <div class="relative w-36 h-36 mx-auto mb-8">
+                <div
+                    class="absolute inset-0 bg-gradient-to-r from-brand-pink to-purple-600 rounded-full animate-pulse blur-xl opacity-40">
+                </div>
+                <img id="mainAvatar" src="/images/partner-avatar.png"
+                    class="w-full h-full rounded-full border-4 border-white/10 object-cover relative z-10">
+                <div
+                    class="absolute -bottom-2 -right-2 w-10 h-10 bg-brand-pink rounded-2xl flex items-center justify-center border-4 border-[#0a0514] z-20">
+                    <i class="fas fa-heart text-white text-xs"></i>
+                </div>
+            </div>
+            <h2 class="text-4xl font-black tracking-tighter italic mb-2">
+                <%= user.name %> ❤️
+            </h2>
+            <p class="text-brand-pink font-black text-xs uppercase tracking-[0.2em] mb-4">With <%= user.partnerName %>
+                    💑</p>
+            <div class="inline-flex items-center space-x-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
+                <i class="far fa-calendar-alt text-[10px] text-gray-500"></i>
+                <span class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Together for 120 Days
+                    ❤️</span>
+            </div>
+            <button onclick="window.location.href='/edit-profile'"
+                class="block mt-8 mx-auto px-8 py-3 bg-white text-black rounded-full font-black text-[10px] uppercase tracking-widest hover:scale-110 active:scale-95 transition-all">Edit
+                Profile</button>
+        </section>
+
+        <!-- LOVE STATS OVERVIEW -->
+        <section class="grid grid-cols-3 gap-4">
+            <div class="glass-card p-6 text-center space-y-2 group hover:bg-brand-pink/5 transition-all">
+                <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Love Score</p>
+                <h4 class="text-2xl font-black text-brand-pink tracking-tight">
+                    <%= user.loveScore %>%
+                </h4>
+                <div class="h-1 w-8 bg-brand-pink/20 mx-auto rounded-full group-hover:w-16 transition-all duration-500">
+                </div>
+            </div>
+            <div class="glass-card p-6 text-center space-y-2 group hover:bg-orange-500/5 transition-all">
+                <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Streak</p>
+                <h4 class="text-2xl font-black text-orange-500 tracking-tight">
+                    <%= user.streak %> <span class="text-sm">🔥</span>
+                </h4>
+                <div class="h-1 w-8 bg-orange-500/20 mx-auto rounded-full group-hover:w-16 transition-all duration-500">
+                </div>
+            </div>
+            <div class="glass-card p-6 text-center space-y-2 group hover:bg-purple-500/5 transition-all">
+                <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Level</p>
+                <h4 class="text-2xl font-black text-purple-400 tracking-tight">Lvl 3 <span class="text-sm">💎</span>
+                </h4>
+                <div class="h-1 w-8 bg-purple-500/20 mx-auto rounded-full group-hover:w-16 transition-all duration-500">
+                </div>
+            </div>
+        </section>
+
+        <!-- LOVE LEVEL PROGRESS -->
+        <section class="glass-card p-8">
+            <div class="flex items-center justify-between mb-6">
+                <h4 class="font-black text-xs uppercase tracking-widest">Your Love Level 💖</h4>
+                <span class="text-[10px] font-black text-brand-pink">65% to Soulmate 🔥</span>
+            </div>
+            <div class="w-full h-4 bg-white/5 rounded-full p-1 overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-brand-pink to-purple-600 rounded-full animate-in slide-in-from-left duration-1000"
+                    style="width: 65%"></div>
+            </div>
+        </section>
+
+        <!-- ACHIEVEMENTS / BADGES -->
+        <section class="space-y-6">
+            <h4 class="font-black text-xs uppercase tracking-widest ml-4">Achievements 🏆</h4>
+            <div class="badge-grid grid grid-cols-4 gap-4">
+                <div
+                    class="glass-card aspect-square flex flex-col items-center justify-center space-y-3 transition-all cursor-crosshair">
+                    <div
+                        class="w-12 h-12 bg-yellow-500/10 rounded-full flex items-center justify-center text-yellow-500">
+                        <i class="fas fa-ring"></i>
+                    </div>
+                    <p class="text-[7px] font-black uppercase text-gray-500">Lover 💍</p>
+                </div>
+                <div
+                    class="glass-card aspect-square flex flex-col items-center justify-center space-y-3 border-brand-pink/20 bg-brand-pink/5">
+                    <div
+                        class="w-12 h-12 bg-brand-pink/20 rounded-full flex items-center justify-center text-brand-pink">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <p class="text-[7px] font-black uppercase text-brand-pink">Replier ⚡</p>
+                </div>
+                <div
+                    class="glass-card aspect-square flex flex-col items-center justify-center space-y-3 grayscale opacity-40">
+                    <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white"><i
+                            class="fas fa-brain"></i></div>
+                    <p class="text-[7px] font-black uppercase text-gray-500">Keeper 🧠</p>
+                </div>
+                <div class="glass-card aspect-square flex flex-col items-center justify-center space-y-3">
+                    <div class="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-400"><i
+                            class="fas fa-camera"></i></div>
+                    <p class="text-[7px] font-black uppercase text-gray-500">King 📸</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- PERSONAL STATS -->
+        <section class="space-y-6">
+            <h4 class="font-black text-xs uppercase tracking-widest ml-4">Insights Dashboard 📊</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="glass-card p-6 flex items-center justify-between">
+                    <div>
+                        <p class="text-[9px] font-black text-gray-500 uppercase mb-1">Total Snaps</p>
+                        <h5 class="text-lg font-black italic">120 Snaps 📸</h5>
+                    </div>
+                </div>
+                <div class="glass-card p-6 flex items-center justify-between">
+                    <div>
+                        <p class="text-[9px] font-black text-gray-500 uppercase mb-1">Avg Reply</p>
+                        <h5 class="text-lg font-black italic">1.2 min ⚡</h5>
+                    </div>
+                </div>
+                <div class="glass-card p-6 flex items-center justify-between">
+                    <div>
+                        <p class="text-[9px] font-black text-gray-500 uppercase mb-1">Quiz Score</p>
+                        <h5 class="text-lg font-black italic">85% 🧠</h5>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RELATIONSHIP TIMELINE -->
+        <section class="space-y-8">
+            <h4 class="font-black text-xs uppercase tracking-widest ml-4">Our Timeline ❤️</h4>
+            <div class="space-y-10 pl-8 relative">
+                <div class="timeline-item relative">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-2 h-2 bg-brand-pink rounded-full ring-8 ring-brand-pink/10"></div>
+                        <div>
+                            <p class="font-black text-sm italic">First Snap Sent ❤️</p>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">120 Days ago</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="timeline-item relative">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-2 h-2 bg-purple-500 rounded-full ring-8 ring-purple-500/10"></div>
+                        <div>
+                            <p class="font-black text-sm italic">First Quiz Completed 🧠</p>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">115 Days ago</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="timeline-item relative">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-2 h-2 bg-brand-pink rounded-full ring-8 ring-brand-pink/10"></div>
+                        <div>
+                            <p class="font-black text-sm italic">Reached Level 2 💕</p>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">45 Days ago</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- COUPLE SETTINGS -->
+        <section class="space-y-6">
+            <h4 class="font-black text-xs uppercase tracking-widest ml-4">Preferences & Bond 🔄</h4>
+            <div class="glass-card overflow-hidden divide-y divide-white/5">
+                <div class="p-6 flex items-center justify-between hover:bg-white/5 transition-all text-left">
+                    <div class="flex items-center space-x-4">
+                        <i class="fas fa-sync text-orange-400"></i>
+                        <span class="text-sm font-bold">Change Partner</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-[10px] text-gray-600"></i>
+                </div>
+                <div class="p-6 flex items-center justify-between hover:bg-white/5 transition-all text-left">
+                    <div class="flex items-center space-x-4">
+                        <i class="fas fa-bell text-blue-400"></i>
+                        <span class="text-sm font-bold">Notifications</span>
+                    </div>
+                    <div class="w-10 h-5 bg-brand-pink rounded-full relative p-0.5">
+                        <div class="w-4 h-4 bg-white rounded-full absolute right-0.5"></div>
+                    </div>
+                </div>
+                <div class="p-6 flex items-center justify-between hover:bg-white/5 transition-all text-left">
+                    <div class="flex items-center space-x-4">
+                        <i class="fas fa-shield-alt text-green-400"></i>
+                        <span class="text-sm font-bold">Privacy Settings</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-[10px] text-gray-600"></i>
+                </div>
+                <div class="p-6 flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <i class="fas fa-moon text-purple-400"></i>
+                        <span class="text-sm font-bold">Dark Mode</span>
+                    </div>
+                    <div class="w-10 h-5 bg-brand-pink rounded-full relative p-0.5">
+                        <div class="w-4 h-4 bg-white rounded-full absolute right-0.5"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MEMORY GALLERY -->
+        <section class="space-y-6">
+            <div class="flex items-center justify-between px-4">
+                <h4 class="font-black text-xs uppercase tracking-widest">Memory Gallery 📸</h4>
+                <button class="text-brand-pink text-[9px] font-black uppercase tracking-widest">View All</button>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <div class="aspect-square glass-card overflow-hidden group">
+                    <img src="https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?auto=format&fit=crop&q=80"
+                        class="w-full h-full object-cover group-hover:scale-110 transition-all">
+                </div>
+                <div class="aspect-square glass-card overflow-hidden group">
+                    <img src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&q=80"
+                        class="w-full h-full object-cover group-hover:scale-110 transition-all">
+                </div>
+                <div class="aspect-square glass-card overflow-hidden group relative">
+                    <div
+                        class="absolute inset-0 bg-black/60 flex items-center justify-center font-black text-xs z-10 text-white hover:bg-black/40 transition-all">
+                        +12</div>
+                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80"
+                        class="w-full h-full object-cover">
+                </div>
+            </div>
+        </section>
+
+        <!-- LOGOUT -->
+        <button onclick="window.location.href='/logout'"
+            class="w-full py-6 rounded-[2rem] bg-gradient-to-r from-red-600 to-red-900 text-white font-black uppercase text-xs tracking-widest shadow-2xl shadow-red-500/20 hover:scale-95 transition-all">Logout
+            Account 🚪</button>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-6 left-6 right-6 z-50">
+        <div
+            class="max-w-md mx-auto bg-black/40 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex items-center justify-between shadow-2xl">
+            <a href="/home"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-gray-500 hover:text-white transition-all"><i
+                    class="fas fa-home text-lg mb-1"></i><span
+                    class="text-[8px] font-black uppercase tracking-tighter">Home</span></a>
+            <a href="/chat"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-gray-500 hover:text-white transition-all"><i
+                    class="fas fa-comment-dots text-lg mb-1"></i><span
+                    class="text-[8px] font-black uppercase tracking-tighter">Chat</span></a>
+            <div class="relative -top-3"><button
+                    class="w-16 h-16 rounded-full border-4 border-[#0a0514] flex items-center justify-center shadow-2xl bg-brand-pink hover:scale-110 transition-all"><i
+                        class="fas fa-camera text-xl text-white"></i></button></div>
+            <a href="/insights"
+                class="flex-1 flex flex-col items-center justify-center p-2 text-gray-500 hover:text-white transition-all"><i
+                    class="fas fa-chart-pie text-lg mb-1"></i><span
+                    class="text-[8px] font-black uppercase tracking-tighter">Insights</span></a>
+            <a href="/profile" class="flex-1 flex flex-col items-center justify-center p-2 nav-active">
+                <div class="w-5 h-5 rounded-full overflow-hidden border border-brand-pink mb-1"><img
+                        src="/images/partner-avatar.png"></div><span
+                    class="text-[8px] font-black uppercase tracking-tighter">Account</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        // --- MEMORY VAULT FETCHER ---
+        async function loadGallery() {
+            try {
+                const res = await fetch('/api/gallery');
+                const media = await res.json();
+                const grid = document.getElementById('galleryGrid');
+                const noMedia = document.getElementById('noMedia');
+
+                if (media.length === 0) {
+                    grid.classList.add('hidden');
+                    noMedia.classList.remove('hidden');
+                    return;
+                }
+
+                grid.innerHTML = media.map(item => {
+                    if (item.type === 'image') {
+                        return `
+                        <div class="relative group aspect-square rounded-2xl overflow-hidden cursor-pointer" onclick="viewFullMedia('${item.text}')">
+                            <img src="${item.text}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <i class="fas fa-eye text-white"></i>
+                            </div>
+                        </div>`;
+                    } else if (item.type === 'video') {
+                        return `
+                        <div class="relative group aspect-square rounded-2xl overflow-hidden bg-black flex items-center justify-center cursor-pointer">
+                             <i class="fas fa-play text-white opacity-50 group-hover:opacity-100"></i>
+                        </div>`;
+                    } else {
+                        return `
+                        <div class="relative group aspect-square rounded-2xl overflow-hidden bg-brand-pink/10 flex items-center justify-center border border-brand-pink/20">
+                             <i class="fas fa-microphone text-brand-pink opacity-50"></i>
+                        </div>`;
+                    }
+                }).join('');
+            } catch (e) { console.error(e); }
+        }
+
+        function viewFullMedia(src) {
+            const overlay = document.createElement('div');
+            overlay.className = "fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-300";
+            overlay.onclick = () => overlay.remove();
+            overlay.innerHTML = `<img src="${src}" class="max-w-full max-h-full rounded-3xl shadow-2xl animate-in zoom-in duration-500">`;
+            document.body.appendChild(overlay);
+        }
+
+        // --- FLOATING HEARTS ---
+        const container = document.getElementById('heart-container');
+        function createHeart() {
+            const heart = document.createElement('div'); heart.classList.add('heart');
+            heart.innerHTML = '<i class="fas fa-heart"></i>';
+            heart.style.left = Math.random() * 100 + 'vw';
+            heart.style.fontSize = Math.random() * 10 + 10 + 'px';
+            heart.style.animationDuration = Math.random() * 5 + 5 + 's';
+            container.appendChild(heart);
+            setTimeout(() => heart.remove(), 10000);
+        }
+        setInterval(createHeart, 1000);
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = "fixed top-12 left-1/2 -translate-x-1/2 px-8 py-4 bg-white/10 backdrop-blur-2xl border border-white/20 text-white font-black uppercase text-[10px] tracking-widest rounded-full z-[100] animate-in slide-in-from-top duration-300";
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        async function loadPartnerInfo() {
+            loadGallery();
+            try {
+                const resCode = await fetch('/api/my-code');
+                const dataCode = await resCode.json();
+                document.getElementById('myCode').innerText = dataCode.code;
+            } catch (err) { console.error(err); }
+        }
+
+        async function connectPartner() {
+            const codeInput = document.getElementById("partnerCode");
+            const code = codeInput.value.trim().toUpperCase();
+            if (!code) return;
+            const btn = document.getElementById('connect-btn');
+            const status = document.getElementById("statusText");
+            btn.disabled = true; btn.innerHTML = `<i class="fas fa-heart animate-ping mr-2"></i> Syncing...`;
+            try {
+                const res = await fetch("/api/connect-partner", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
+                const data = await res.json();
+                if (data.success) {
+                    if (data.status === 'connected') {
+                        navigator.vibrate?.([100, 50, 100]);
+                        showToast("SYNC COMPLETE! ❤️");
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        status.classList.replace('text-red-400', 'text-blue-400');
+                        status.innerText = "Request Sent! Waiting... ❤️";
+                    }
+                } else {
+                    status.innerText = data.error || "Invalid Code! ❌";
+                    btn.disabled = false; btn.innerHTML = "Connect Now ❤️";
+                }
+            } catch (err) { btn.disabled = false; btn.innerHTML = "Connect Now ❤️"; }
+        }
+
+        function copyCode() {
+            const code = document.getElementById("myCode").innerText;
+            if (code === "------") return;
+            navigator.clipboard.writeText(code);
+            showToast("Love Code Copied! ❤️");
+        }
+
+        function toggleSettings() {
+            showToast("Settings coming soon! ⚙️");
+        }
+
+        window.onload = loadPartnerInfo;
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera | LoveSync ❤️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        'brand-purple': '#4D128B',
+                        'brand-pink': '#E11D48',
+                        'neon-pink': '#FF007F',
+                        'neon-purple': '#9D50BB',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .camera-view {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        canvas {
+            display: none;
+        }
+
+        .shutter-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 4px solid #fff;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+
+        .shutter-btn:active {
+            transform: scale(0.9);
+            background: #fff;
+        }
+
+        .shutter-btn::after {
+            content: '';
+            position: absolute;
+            inset: 6px;
+            border-radius: 50%;
+            background: #fff;
+            opacity: 0.8;
+        }
+
+        .glow-pulse {
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0% {
+                box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.6);
+            }
+
+            70% {
+                box-shadow: 0 0 0 20px rgba(225, 29, 72, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(225, 29, 72, 0);
+            }
+        }
+
+        .filter-item {
+            min-width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+
+        .filter-active {
+            border: 2px solid #E11D48;
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(225, 29, 72, 0.4);
+        }
+
+        /* Real-time Filters */
+        .filter-love {
+            filter: sepia(0.3) hue-rotate(-30deg) saturate(1.5) drop-shadow(0 0 10px #ff007f);
+        }
+
+        .filter-vintage {
+            filter: sepia(0.6) contrast(0.8) brightness(0.9) grayscale(0.2);
+        }
+
+        .filter-bw {
+            filter: grayscale(1) contrast(1.2);
+        }
+
+        .filter-none {
+            filter: none;
+        }
+
+        #flash {
+            position: fixed;
+            inset: 0;
+            background: #fff;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .flash-active {
+            animation: flashShot 0.4s ease-out;
+        }
+
+        @keyframes flashShot {
+            0% {
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
+        .toast {
+            position: fixed;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(225, 29, 72, 0.9);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 100px;
+            font-weight: 800;
+            font-size: 14px;
+            z-index: 1000;
+            animation: slideDown 0.3s ease-out;
+            display: none;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateX(-50%) translateY(-20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Preview State */
+        #preview-section {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 500;
+            display: none;
+        }
+
+        #preview-canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white font-sans touch-none select-none">
+
+    <div id="flash"></div>
+    <div id="toast" class="toast">Snap Sent! ❤️</div>
+    <audio id="shutter-sound" src="https://assets.mixkit.net/sfx/preview/mixkit-camera-shutter-click-1133.mp3"></audio>
+
+    <!-- Camera Interface -->
+    <div class="camera-view">
+        <video id="video-feed" autoplay playsinline muted class="filter-none"></video>
+    </div>
+
+    <!-- Top Overlay -->
+    <div class="fixed top-0 left-0 right-0 p-6 flex items-center justify-between z-50">
+        <div class="flex items-center space-x-4">
+            <a href="/home"
+                class="w-10 h-10 bg-black/20 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all">
+                <i class="fas fa-chevron-left text-lg"></i>
+            </a>
+            <button id="flash-toggle"
+                class="w-10 h-10 bg-black/20 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/10">
+                <i class="fas fa-bolt text-lg"></i>
+            </button>
+        </div>
+        <div class="bg-black/20 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10">
+            <p class="text-[10px] font-black uppercase tracking-widest text-brand-pink">Send Love Snap ❤️</p>
+        </div>
+        <button id="switch-camera"
+            class="w-10 h-10 bg-black/20 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/10">
+            <i class="fas fa-sync-alt text-lg"></i>
+        </button>
+    </div>
+
+    <!-- Bottom Interface -->
+    <div class="fixed bottom-0 left-0 right-0 p-10 space-y-10 z-50 pointer-events-none">
+
+        <!-- Filters (Swipeable) -->
+        <div class="flex items-center space-x-6 overflow-x-auto no-scrollbar pb-4 pointer-events-auto">
+            <button onclick="applyFilter(this, 'none')" class="filter-item filter-active bg-white/10">None</button>
+            <button onclick="applyFilter(this, 'love')" class="filter-item bg-brand-pink/20">Love</button>
+            <button onclick="applyFilter(this, 'vintage')" class="filter-item bg-yellow-900/20">Old</button>
+            <button onclick="applyFilter(this, 'bw')" class="filter-item bg-gray-500/20">B&W</button>
+        </div>
+
+        <!-- Capture Actions -->
+        <div class="flex items-center justify-between pointer-events-auto">
+            <button
+                class="w-12 h-12 bg-black/20 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-white/10">
+                <i class="fas fa-images text-lg text-gray-400"></i>
+            </button>
+
+            <button id="capture-btn" class="shutter-btn glow-pulse"></button>
+
+            <button
+                class="w-12 h-12 bg-black/20 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-white/10">
+                <i class="fas fa-hourglass-half text-lg text-gray-400"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Preview Screen (Initially Hidden) -->
+    <div id="preview-section">
+        <canvas id="preview-image"></canvas>
+        <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40 pointer-events-none">
+        </div>
+
+        <!-- Preview Top Controls -->
+        <div class="fixed top-0 left-0 right-0 p-6 flex items-center justify-between z-50">
+            <button id="close-preview"
+                class="w-10 h-10 bg-black/20 backdrop-blur-xl rounded-full flex items-center justify-center text-white">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+            <div class="flex space-x-4">
+                <button
+                    class="w-10 h-10 bg-brand-pink/20 rounded-full flex items-center justify-center text-brand-pink"><i
+                        class="fas fa-closed-captioning"></i></button>
+                <button class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center"><i
+                        class="fas fa-smile"></i></button>
+                <button class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center"><i
+                        class="fas fa-pen-nib"></i></button>
+            </div>
+        </div>
+
+        <!-- Preview Bottom Controls -->
+        <div class="fixed bottom-10 left-0 right-0 p-10 flex items-center justify-between z-50">
+            <button id="retake-snap"
+                class="flex items-center space-x-2 bg-white/10 backdrop-blur-xl px-6 py-4 rounded-2xl border border-white/10 font-black uppercase text-[10px] tracking-widest">
+                <i class="fas fa-undo"></i> <span>Retake</span>
+            </button>
+
+            <button onclick="sendSnap()" id="send-snap"
+                class="flex-1 ml-6 bg-brand-pink text-white py-6 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-brand-pink/40 animate-bounce">
+                Send to Partner ❤️ 🏹
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video-feed');
+        const captureBtn = document.getElementById('capture-btn');
+        const previewSection = document.getElementById('preview-section');
+        const previewCanvas = document.getElementById('preview-image');
+        const flashOverlay = document.getElementById('flash');
+        const shutterSound = document.getElementById('shutter-sound');
+
+        let currentFacingMode = 'user'; // Start with front camera
+        let stream = null;
+
+        async function initCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: currentFacingMode },
+                    audio: false
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                alert("Camera permission is required 📸");
+            }
+        }
+
+        initCamera();
+
+        // Switch Camera
+        document.getElementById('switch-camera').onclick = () => {
+            currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+            initCamera();
+        };
+
+        // Capture Logic
+        captureBtn.onclick = () => {
+            // Flash + Sound
+            flashOverlay.classList.add('flash-active');
+            shutterSound.play();
+            navigator.vibrate?.(50);
+            setTimeout(() => flashOverlay.classList.remove('flash-active'), 400);
+
+            // Canvas Drawing
+            const context = previewCanvas.getContext('2d');
+            previewCanvas.width = video.videoWidth;
+            previewCanvas.height = video.videoHeight;
+
+            // Mirror image if using front camera
+            if (currentFacingMode === 'user') {
+                context.translate(previewCanvas.width, 0);
+                context.scale(-1, 1);
+            }
+
+            // Apply current filter to canvas if needed, but for now we apply it to image via CSS
+            context.drawImage(video, 0, 0, previewCanvas.width, previewCanvas.height);
+
+            // Set current filter to preview
+            previewCanvas.className = video.className;
+
+            // Show Preview
+            previewSection.style.display = 'block';
+        };
+
+        function applyFilter(el, type) {
+            video.className = `filter-${type}`;
+            document.querySelectorAll('.filter-item').forEach(btn => btn.classList.remove('filter-active'));
+            el.classList.add('filter-active');
+            navigator.vibrate?.(10);
+        }
+
+        document.getElementById('retake-snap').onclick = () => {
+            previewSection.style.display = 'none';
+        }
+        document.getElementById('close-preview').onclick = () => {
+            previewSection.style.display = 'none';
+        }
+
+        function sendSnap() {
+            const toast = document.getElementById('toast');
+            toast.style.display = 'block';
+            navigator.vibrate?.([100, 50, 100]);
+
+            // Log snap for AI Quiz
+            fetch('/api/activity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'snap', content: 'Sent a Love Snap ❤️', timestamp: new Date() })
+            });
+
+            setTimeout(() => {
+                toast.style.display = 'none';
+                previewSection.style.display = 'none';
+            }, 2000);
+        }
+    </script>
+</body>
+
+</html>

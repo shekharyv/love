@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat | LoveSync ❤️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        'brand-purple': '#4D128B',
+                        'brand-pink': '#E11D48',
+                        'neon-pink': '#FF007F',
+                        'neon-purple': '#9D50BB',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .heart {
+            position: absolute;
+            color: #FF1493;
+            pointer-events: none;
+            animation: rise 5s infinite ease-in;
+            opacity: 0;
+            z-index: 0;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translateY(100vh) scale(0.5);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(-10vh) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        .glass-header {
+            background: rgba(10, 5, 20, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .glass-input {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .msg-bubble {
+            max-width: 85%;
+            border-radius: 18px;
+            padding: 6px 16px;
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+            letter-spacing: -0.01em;
+        }
+
+        .msg-left {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom-left-radius: 5px;
+        }
+
+        .msg-right {
+            background: linear-gradient(135deg, #f02d66, #9333EA);
+            border-bottom-right-radius: 5px;
+            box-shadow: 0 8px 20px rgba(225, 29, 72, 0.15);
+        }
+
+        .pulse-dots span {
+            width: 4px;
+            height: 4px;
+            background: #6B7280;
+            border-radius: 50%;
+            display: inline-block;
+            animation: blink 1.4s infinite ease-in-out;
+        }
+
+        .pulse-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .pulse-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 0.2;
+                transform: scale(0.8);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        .reaction-overlay {
+            position: absolute;
+            top: -50px;
+            background: rgba(26, 11, 54, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 100px;
+            padding: 6px 12px;
+            display: flex;
+            gap: 8px;
+            border: 1px solid rgba(225, 29, 72, 0.4);
+            z-index: 10;
+            animation: bounceIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes bounceIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.8);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        #chat-container::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        #chat-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #chat-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body class="bg-[#0a0514] text-white flex flex-col h-screen overflow-hidden font-sans">
+
+    <!-- Animated Heart Background -->
+    <div id="heart-container" class="fixed inset-0 overflow-hidden pointer-events-none z-0"></div>
+
+    <!-- Top Chat Header -->
+    <header class="glass-header z-50 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <a href="/home" class="p-2 hover:bg-white/5 rounded-full text-gray-400 transition-colors"><i
+                    class="fas fa-chevron-left text-xl"></i></a>
+            <div class="relative group cursor-pointer" onclick="vibrateDevice()">
+                <img src="/images/partner-avatar.png" alt="Partner"
+                    class="w-12 h-12 rounded-full border-2 border-brand-pink p-0.5">
+                <div id="online-indicator"
+                    class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0a0514]"></div>
+            </div>
+            <div>
+                <h3 class="font-bold text-sm tracking-tight"><span id="header-partner-name">Partner</span> ❤️</h3>
+                <p id="status-text" class="text-[10px] font-black text-green-400 uppercase tracking-widest">Online</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 text-gray-400">
+            <button class="p-2.5 hover:bg-white/5 rounded-full hover:text-white transition-all"><i
+                    class="fas fa-phone-alt"></i></button>
+            <button class="p-2.5 hover:bg-white/5 rounded-full hover:text-white transition-all"><i
+                    class="fas fa-video"></i></button>
+            <button class="p-2.5 hover:bg-white/5 rounded-full hover:text-white transition-all"><i
+                    class="fas fa-ellipsis-v"></i></button>
+        </div>
+    </header>
+
+    <!-- Call Overlay UI -->
+    <div id="call-overlay"
+        class="fixed inset-0 z-[100] hidden bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-in zoom-in duration-300">
+        <!-- Remote Video (Full Screen) -->
+        <video id="remote-video" autoplay playsinline
+            class="absolute inset-0 w-full h-full object-cover opacity-80"></video>
+
+        <!-- Local Video (Picture-in-Picture) -->
+        <div
+            class="absolute top-8 right-8 w-32 h-44 rounded-3xl overflow-hidden border-2 border-brand-pink shadow-2xl z-20 bg-gray-900">
+            <video id="local-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
+        </div>
+
+        <!-- Caller Info -->
+        <div class="text-center z-10 mb-20 text-white">
+            <div class="w-24 h-24 rounded-full border-4 border-brand-pink p-1 mx-auto mb-6">
+                <img src="/images/partner-avatar.png" class="w-full h-full rounded-full object-cover">
+            </div>
+            <h2 id="calling-status" class="text-2xl font-black mb-2 uppercase tracking-widest animate-pulse">Ringing...
+            </h2>
+            <p class="text-xs font-black uppercase tracking-widest text-brand-pink">Partner</p>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="z-10 flex items-center space-x-6">
+            <button onclick="toggleMic()" id="mic-btn"
+                class="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xl transition-all hover:bg-white/20 active:scale-95">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <button onclick="hangupCall()"
+                class="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center text-2xl shadow-2xl transition-all hover:scale-110 active:scale-90 text-white">
+                <i class="fas fa-phone-slash"></i>
+            </button>
+            <button onclick="toggleVideo()" id="video-btn"
+                class="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xl transition-all hover:bg-white/20 active:scale-95 text-white">
+                <i class="fas fa-video"></i>
+            </button>
+        </div>
+
+        <!-- Incoming Call UI -->
+        <div id="incoming-call-box"
+            class="hidden absolute bottom-20 left-1/2 -translate-x-1/2 w-80 bg-white/10 backdrop-blur-3xl border border-white/20 rounded-[2.5rem] p-6 shadow-2xl animate-in slide-in-from-bottom duration-500 z-[110]">
+            <div class="text-center mb-6">
+                <p class="text-[10px] font-black uppercase tracking-widest text-brand-pink mb-2">Incoming Call</p>
+                <div class="w-20 h-20 rounded-full border-2 border-brand-pink p-1 mx-auto">
+                    <img src="/images/partner-avatar.png" class="w-full h-full rounded-full">
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button onclick="rejectCall()"
+                    class="flex-1 bg-red-600/20 text-red-500 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest border border-red-500/20">Decline</button>
+                <button onclick="acceptCall()"
+                    class="flex-1 bg-green-500 py-4 rounded-2xl font-black text-white uppercase text-[10px] tracking-widest shadow-lg shadow-green-500/30">Accept</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Messages Scrolling Area -->
+    <main id="chat-container"
+        class="flex-grow overflow-y-auto px-4 py-10 flex flex-col space-y-6 relative z-10 scroll-smooth">
+        <!-- Messages will be injected here -->
+
+        <!-- Welcome Card -->
+        <div class="mx-auto w-full max-w-xs text-center space-y-4 mb-4">
+            <div class="glass-input p-6 rounded-3xl border-brand-pink/20">
+                <div
+                    class="w-10 h-10 bg-brand-pink/20 rounded-full mx-auto flex items-center justify-center text-brand-pink mb-2">
+                    <i class="fas fa-lock text-sm"></i>
+                </div>
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
+                    This chat is just for the two of you. Your bond is private & secure. ❤️
+                </p>
+            </div>
+        </div>
+
+        <!-- Quiz Integration Card -->
+        <div class="mx-auto w-full max-w-sm reveal-card">
+            <div class="glass-input p-6 border-brand-pink/40 bg-brand-pink/5 relative overflow-hidden group">
+                <div
+                    class="absolute -top-10 -right-10 w-24 h-24 bg-brand-pink/10 blur-2xl group-hover:bg-brand-pink/20 transition-all">
+                </div>
+                <div class="flex items-center space-x-3 mb-4">
+                    <div
+                        class="w-10 h-10 bg-brand-pink/20 rounded-xl flex items-center justify-center text-brand-pink border border-brand-pink/30">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm tracking-tight text-white uppercase tracking-widest">Tonight’s quiz
+                            is ready ❤️</h4>
+                    </div>
+                </div>
+                <button
+                    class="w-full bg-brand-pink py-3 rounded-2xl font-black text-xs hover:shadow-[0_0_20px_rgba(225,29,72,0.4)] transition-all uppercase tracking-widest">Start
+                    Game</button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Typing Indicator -->
+    <div id="typing-indicator"
+        class="px-6 py-2 flex items-center space-x-2 text-[10px] font-black text-gray-500 uppercase tracking-widest hidden relative z-10">
+        <span>Partner is typing</span>
+        <div class="pulse-dots flex space-x-1 ml-1">
+            <span></span><span></span><span></span>
+        </div>
+    </div>
+
+    <!-- Message Input Space -->
+    <footer class="p-4 bg-gradient-to-t from-[#0a0514] to-transparent relative z-10">
+
+        <!-- Quick Suggestions -->
+        <div class="flex space-x-2 mb-4 overflow-x-auto no-scrollbar pb-1">
+            <div class="flex space-x-2" id="suggestion-bar">
+                <button onclick="sendQuickLove('Thinking of you... 💭')"
+                    class="whitespace-nowrap bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-[10px] font-bold text-gray-400 hover:bg-brand-pink hover:text-white hover:border-brand-pink transition-all">Thinking
+                    of you... 💭</button>
+                <button onclick="sendQuickLove('Send me a selfie? 📸')"
+                    class="whitespace-nowrap bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-[10px] font-bold text-gray-400 hover:bg-brand-pink hover:text-white hover:border-brand-pink transition-all">Send
+                    me a selfie? 📸</button>
+                <button onclick="sendQuickLove('I love you! ❤️')"
+                    class="whitespace-nowrap bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-[10px] font-bold text-gray-400 hover:bg-brand-pink hover:text-white hover:border-brand-pink transition-all">I
+                    love you! ❤️</button>
+                <button onclick="sendQuickLove('Can we talk? 📞')"
+                    class="whitespace-nowrap bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-[10px] font-bold text-gray-400 hover:bg-brand-pink hover:text-white hover:border-brand-pink transition-all">Can
+                    we talk? 📞</button>
+
+                <!-- Suggestions will be injected here -->
+            </div>
+        </div>
+
+        <!-- Input Outer Shell -->
+        <div class="max-w-4xl mx-auto space-y-4">
+
+            <!-- Quick Love Actions -->
+            <div class="flex justify-center space-x-3">
+                <button onclick="sendQuickLove('❤️ MISS YOU')"
+                    class="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase text-brand-pink hover:bg-brand-pink hover:text-white transition-all">❤️
+                    Miss you</button>
+                <button onclick="sendQuickLove('😘 KISS')"
+                    class="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase text-brand-pink hover:bg-brand-pink hover:text-white transition-all">😘
+                    Kiss</button>
+                <button onclick="sendQuickLove('🤗 HUG')"
+                    class="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase text-brand-pink hover:bg-brand-pink hover:text-white transition-all">🤗
+                    Hug</button>
+            </div>
+
+            <!-- Real Input Area -->
+            <div class="flex items-center space-x-3 glass-input p-2 rounded-full relative">
+                <button class="p-3 text-gray-400 hover:text-white transition-colors"><i
+                        class="fas fa-plus"></i></button>
+                <input type="text" id="chatInput" placeholder="Type a romantic message..."
+                    class="bg-transparent flex-grow outline-none text-sm font-medium py-3 px-2">
+
+                <div class="flex items-center space-x-1 border-l border-white/10 pl-2">
+                    <button onclick="openCamera()" class="p-3 text-gray-400 hover:text-white transition-colors"
+                        title="Send Snap"><i class="fas fa-camera"></i></button>
+                    <button id="mic-btn" onmousedown="startRecording()" onmouseup="stopRecording()"
+                        ontouchstart="startRecording()" ontouchend="stopRecording()"
+                        class="p-3 text-gray-400 hover:text-white transition-colors" title="Voice Note"><i
+                            class="fas fa-microphone"></i></button>
+                </div>
+
+                <button id="send-btn" onclick="sendMessage()"
+                    class="bg-brand-pink w-12 h-12 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(225,29,72,0.4)] hover:shadow-[0_0_25px_rgba(225,29,72,0.6)] transform hover:scale-105 active:scale-90 transition-all">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- Camera Overlay -->
+    <div id="camera-modal" class="fixed inset-0 z-[100] bg-black/95 hidden grid place-items-center p-4">
+        <div
+            class="relative w-full max-w-lg aspect-[3/4] rounded-[3rem] overflow-hidden bg-[#1a1326] shadow-2xl border border-white/10">
+            <video id="camera-preview" autoplay playsinline class="w-full h-full object-cover"></video>
+            <div id="flash" class="absolute inset-0 bg-white hidden z-20"></div>
+
+            <button onclick="closeCamera()"
+                class="absolute top-8 left-8 w-12 h-12 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white z-30">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <div class="absolute bottom-12 inset-x-0 flex items-center justify-center z-30">
+                <button id="capture-btn"
+                    class="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center group active:scale-90 transition-all">
+                    <div class="w-16 h-16 rounded-full bg-white group-hover:scale-105 transition-all"></div>
+                </button>
+            </div>
+        </div>
+        <canvas id="photo-canvas" class="hidden"></canvas>
+    </div>
+
+
+    <!-- Voice Recording Overlay -->
+    <div id="voice-modal" class="hidden fixed inset-0 z-[200] bg-black/90 backdrop-blur-3xl">
+        <div class="flex flex-col items-center justify-center w-full h-full text-center space-y-12">
+            <div class="relative w-48 h-48 flex items-center justify-center">
+                <div class="absolute inset-0 bg-brand-pink/20 rounded-full animate-ping"></div>
+                <div
+                    class="w-24 h-24 bg-brand-pink rounded-full flex items-center justify-center text-white shadow-[0_0_80px_rgba(255,0,127,0.6)] z-10 transition-transform scale-110">
+                    <i class="fas fa-microphone text-4xl"></i>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <h3 class="text-3xl font-black italic text-white uppercase tracking-wider animate-pulse">Recording...
+                </h3>
+                <p id="timer" class="text-brand-pink font-black text-xl tracking-[0.2em]">00:00</p>
+                <p
+                    class="text-gray-500 text-[10px] font-bold uppercase tracking-widest bg-white/5 py-2 px-4 rounded-full">
+                    Keep holding to record ❤️</p>
+            </div>
+
+            <div class="flex space-x-4">
+                <button onclick="cancelRecording()"
+                    class="px-8 py-4 bg-white/5 rounded-full border border-white/10 text-[10px] font-black uppercase text-gray-400 hover:text-white transition-all">Cancel</button>
+                <div
+                    class="px-8 py-4 bg-brand-pink/20 rounded-full border border-brand-pink/40 text-[10px] font-black uppercase text-brand-pink">
+                    Release to Send 🏹</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const chatContainer = document.getElementById('chat-container');
+        const msgInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('send-btn');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        // --- NEW: SEND ON ENTER ---
+        msgInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        let USER_ID = "<%= user._id %>";
+        let USER_NAME = "<%= user.name %>";
+        let PARTNER_ID, COUPLE_ID;
+
+        // --- WebRTC Calling Logic ---
+        let localStream;
+        let peerConnection;
+        let isCalling = false;
+        const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+        async function startCall(type) {
+            if (isCalling) return;
+            isCalling = true;
+            document.getElementById('call-overlay').classList.remove('hidden');
+            document.getElementById('calling-status').innerText = "Ringing...";
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: type === 'video', audio: true });
+                document.getElementById('local-video').srcObject = localStream;
+                peerConnection = new RTCPeerConnection(config);
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                peerConnection.onicecandidate = (e) => { if (e.candidate) socket.emit('ice-candidate', { coupleId: COUPLE_ID, candidate: e.candidate }); };
+                peerConnection.ontrack = (e) => { document.getElementById('remote-video').srcObject = e.streams[0]; document.getElementById('calling-status').innerText = "Connected"; };
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                socket.emit('call-user', { coupleId: COUPLE_ID, offer, from: USER_ID, type });
+            } catch (err) { hangupCall(); }
+        }
+
+        socket.on('incoming-call', (data) => {
+            document.getElementById('call-overlay').classList.remove('hidden');
+            document.getElementById('incoming-call-box').classList.remove('hidden');
+            window.incomingCallData = data;
+        });
+
+        async function acceptCall() {
+            const data = window.incomingCallData;
+            document.getElementById('incoming-call-box').classList.add('hidden');
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: data.type === 'video', audio: true });
+                document.getElementById('local-video').srcObject = localStream;
+                peerConnection = new RTCPeerConnection(config);
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                peerConnection.onicecandidate = (e) => { if (e.candidate) socket.emit('ice-candidate', { coupleId: COUPLE_ID, candidate: e.candidate }); };
+                peerConnection.ontrack = (event) => { document.getElementById('remote-video').srcObject = event.streams[0]; document.getElementById('calling-status').innerText = "Connected"; };
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                socket.emit('answer-call', { coupleId: COUPLE_ID, answer });
+            } catch (err) { hangupCall(); }
+        }
+
+        socket.on('call-answered', async (data) => { await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer)); });
+        socket.on('ice-candidate', async (data) => { try { if (peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch (e) { } });
+        socket.on('call-ended', () => closeCallUI());
+        function hangupCall() { socket.emit('hangup', { coupleId: COUPLE_ID }); closeCallUI(); }
+        function closeCallUI() {
+            if (localStream) localStream.getTracks().forEach(t => t.stop());
+            if (peerConnection) peerConnection.close();
+            peerConnection = null; isCalling = false;
+            document.getElementById('call-overlay').classList.add('hidden');
+            document.getElementById('incoming-call-box').classList.add('hidden');
+        }
+        function toggleMic() { const tracks = localStream.getAudioTracks(); tracks.forEach(t => t.enabled = !t.enabled); }
+        function toggleVideo() { const tracks = localStream.getVideoTracks(); tracks.forEach(t => t.enabled = !t.enabled); }
+        function rejectCall() { socket.emit('hangup', { coupleId: COUPLE_ID }); closeCallUI(); }
+
+        // Attach header buttons
+        document.querySelectorAll('header button').forEach((btn, idx) => {
+            if (idx === 0) btn.onclick = () => startCall('voice');
+            if (idx === 1) btn.onclick = () => startCall('video');
+        });
+
+        // --- CORE CHAT LOGIC ---
+        async function initChat() {
+            try {
+                const res = await fetch('/api/partner');
+                const p = await res.json();
+                PARTNER_ID = p.partnerId;
+
+                if (!PARTNER_ID) {
+                    alert("Connect with your partner first! ❤️");
+                    location.href = '/home'; return;
+                }
+
+                document.getElementById('header-partner-name').innerText = p.name;
+                COUPLE_ID = [USER_ID, PARTNER_ID].sort().join('_');
+                socket.emit('join', { userId: USER_ID, partnerId: PARTNER_ID });
+
+                loadMessages();
+            } catch (e) { console.error(e); }
+        }
+
+        socket.on('chat message', (msg) => {
+            renderMessage(msg);
+            scrollToBottom();
+            if (msg.senderId !== USER_ID) vibrateDevice();
+        });
+
+        msgInput.addEventListener('input', () => {
+            if (!COUPLE_ID) return;
+            socket.emit('typing', { coupleId: COUPLE_ID, isTyping: true });
+            clearTimeout(window.typingTimeout);
+            window.typingTimeout = setTimeout(() => {
+                socket.emit('typing', { coupleId: COUPLE_ID, isTyping: false });
+            }, 3000);
+        });
+
+        async function sendMessage() {
+            const input = document.getElementById("chatInput");
+            const text = input.value.trim();
+            if (!text) return;
+
+            socket.emit('typing', { coupleId: COUPLE_ID, isTyping: false });
+
+            try {
+                const res = await fetch("/send-message", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ senderId: USER_ID, receiverId: PARTNER_ID, text: text })
+                });
+                msgInput.value = '';
+                createHeartEffect();
+                scrollToBottom();
+            } catch (err) { console.error(err); }
+        }
+
+        async function loadMessages() {
+            if (!PARTNER_ID) return;
+            try {
+                const res = await fetch(`/messages/${USER_ID}/${PARTNER_ID}`);
+                const data = await res.json();
+
+                // Compare the entire state to catch "seen" updates
+                const currentState = JSON.stringify(data);
+                if (window.lastChatState === currentState) return;
+                window.lastChatState = currentState;
+
+                chatContainer.innerHTML = '';
+                data.forEach(renderMessage);
+                scrollToBottom();
+
+                // On load, mark messages as seen
+                await markAsSeen();
+            } catch (e) { console.error(e); }
+        }
+
+        async function markAsSeen() {
+            if (!PARTNER_ID) return;
+            console.log("🔥 STEP 1: CALLING SEEN API...");
+            await fetch('/api/seen', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: USER_ID, partnerId: PARTNER_ID })
+            });
+            console.log("✅ SEEN API CALLED! Refreshing UI...");
+            await loadMessages(); // 🔥 STEP 3: UI REFRESH
+        }
+
+        async function markAsDelivered() {
+            if (!PARTNER_ID) return;
+            await fetch('/api/delivered', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: USER_ID, partnerId: PARTNER_ID })
+            });
+        }
+
+        socket.on('messages seen', () => loadMessages());
+        socket.on('chat message', (msg) => {
+            if (msg.senderId !== USER_ID) {
+                markAsSeen();
+                showWebNotification(msg);
+                vibrateDevice();
+            }
+            loadMessages();
+        });
+
+        function showWebNotification(msg) {
+            if (Notification.permission === 'granted') {
+                const title = `${msg.user} ❤️`;
+                const options = {
+                    body: msg.type === 'image' ? 'Sent a new snap! 📸' : (msg.type === 'audio' ? 'Sent a voice note 🎤' : msg.text),
+                    icon: '/images/partner-avatar.png',
+                    vibrate: [200, 100, 200],
+                    tag: 'chat-msg'
+                };
+                new Notification(title, options);
+            }
+        }
+
+        async function requestNotificationPermission() {
+            if ('Notification' in window) {
+                if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                    const permission = await Notification.requestPermission();
+                    if (permission === 'granted') console.log("Notifications Enabled! 🔔");
+                }
+            }
+        }
+
+        function vibrateDevice() {
+            if ('vibrate' in navigator) {
+                navigator.vibrate([100, 50, 100]);
+            }
+        }
+
+        requestNotificationPermission();
+        socket.on('typing', (data) => {
+            const indicator = document.getElementById('typing-indicator');
+            data.isTyping ? indicator.classList.remove('hidden') : indicator.classList.add('hidden');
+            scrollToBottom();
+        });
+
+        function renderMessage(msg) {
+            const isMe = msg.senderId === USER_ID;
+
+            // 🚨 90% CASE ERROR DEBUG:
+            console.log("Step 5 Render Check -> msg.senderId:", msg.senderId, "USER_ID:", USER_ID, "Match:", isMe);
+            let contentHTML = '';
+
+            if (msg.type === 'image') {
+                if (msg.opened) {
+                    contentHTML = `<div class="flex items-center space-x-3 bg-white/5 p-4 rounded-3xl border border-white/5 opacity-50 grayscale">
+                        <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-500"><i class="fas fa-eye-slash"></i></div>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-gray-500">Snap Opened 👁️</span>
+                    </div>`;
+                } else {
+                    const canOpen = !isMe;
+                    contentHTML = canOpen ? `
+                        <button onclick="viewSnapOnce('${msg._id}', '${msg.text}')" class="flex items-center space-x-3 bg-brand-pink/20 p-4 rounded-3xl border border-brand-pink/30 hover:bg-brand-pink/30 transition-all group">
+                            <div class="w-10 h-10 rounded-full bg-brand-pink flex items-center justify-center text-white shadow-lg animate-pulse"><i class="fas fa-camera"></i></div>
+                            <div class="text-left">
+                                <p class="text-[10px] font-black uppercase tracking-widest text-brand-pink mb-1">New Snap!</p>
+                                <p class="text-[9px] font-bold text-white/60">Tap to view (Once)</p>
+                            </div>
+                        </button>` : `
+                        <div class="flex items-center space-x-3 bg-white/5 p-4 rounded-3xl border border-white/5">
+                            <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-brand-pink opacity-50"><i class="fas fa-camera"></i></div>
+                            <span class="text-[10px] font-black uppercase tracking-widest opacity-50 text-brand-pink">Snap Sent 📸</span>
+                        </div>`;
+                }
+            } else if (msg.type === 'audio') {
+                contentHTML = `
+                    <div class="flex items-center space-x-3 py-0 min-w-[170px]">
+                        <button onclick="playVoice(this)" data-src="${msg.text}" 
+                            class="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-sm transition-all active:scale-90 hover:bg-white/30">
+                            <i class="fas fa-play text-[9px] ml-0.5"></i>
+                        </button>
+                        <div class="flex-grow flex items-center h-4">
+                           <div class="flex-grow h-[2px] bg-white/20 rounded-full overflow-hidden">
+                               <div class="h-full bg-white w-0 transition-all duration-300"></div>
+                           </div>
+                        </div>
+                    </div>`;
+            } else {
+                contentHTML = `<p class="text-[11px] font-semibold leading-[1.3] text-white/95">${msg.text}</p>`;
+            }
+
+            const bubble = document.createElement('div');
+            bubble.className = `flex ${isMe ? 'justify-end' : 'justify-start'} w-full group animate-in slide-in-from-${isMe ? 'right' : 'left'} duration-300 mb-1`;
+            bubble.innerHTML = `
+                <div class="max-w-[85%] ${isMe ? 'order-2' : 'order-1'}">
+                    <div class="msg-bubble ${isMe ? 'msg-right' : 'msg-left'} group relative cursor-pointer" onclick="showReactions(this)">
+                        ${contentHTML}
+                        <div class="flex items-center justify-end space-x-1 mt-0.5">
+                            <span class="text-[7px] font-bold uppercase opacity-40">${msg.time}</span>
+                            ${isMe ? `<span class="status-icon text-[9px]">${getStatusIcon(msg.status)}</span>` : ''}
+                        </div>
+                    </div>
+                    ${isMe && msg.status === 'seen' ? `<p class="text-[7px] font-bold uppercase text-brand-pink/60 text-right pr-2 mt-1">Seen ${getRelativeSeenTime(msg.seenAt)}</p>` : ''}
+                </div>`;
+            chatContainer.appendChild(bubble);
+        }
+
+        function getStatusIcon(status) {
+            if (status === 'seen') return '<i class="fas fa-check-double text-yellow-400"></i>';
+            if (status === 'delivered') return '<i class="fas fa-check-double text-white/30"></i>';
+            return '<i class="fas fa-check text-white/30"></i>';
+        }
+
+        function getRelativeSeenTime(seenAt) {
+            if (!seenAt) return "Just now";
+            const date = new Date(seenAt);
+            if (isNaN(date.getTime())) return "Now";
+            const diff = (new Date() - date) / 1000;
+            if (diff < 60) return "Just now";
+            if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+            return date.getHours() + ":" + date.getMinutes().toString().padStart(2, '0');
+        }
+
+
+        // --- AI QUIZ LOGIC ---
+        let currentQuiz = [];
+        let quizIdx = 0;
+
+        async function startQuiz() {
+            const modal = document.getElementById('quiz-modal');
+            const questionText = document.getElementById('quiz-question-text');
+            const progress = document.getElementById('quiz-progress');
+            const bar = document.getElementById('quiz-progress-bar');
+
+            modal.classList.remove('hidden');
+            questionText.innerText = "Connecting to AI Relationship Expert... 🧠";
+            quizIdx = 0;
+
+            try {
+                const res = await fetch('/api/generate-quiz');
+                const data = await res.json();
+
+                if (data.questions && data.questions.length > 0) {
+                    currentQuiz = data.questions;
+                    showQuizQuestion();
+                } else {
+                    questionText.innerText = "No activity yet today! Send a snap or message to unlock the smart quiz. ❤️";
+                }
+            } catch (e) {
+                questionText.innerText = "AI is sleeping! Come back tomorrow. 😴";
+            }
+        }
+
+        function showQuizQuestion() {
+            const questionText = document.getElementById('quiz-question-text');
+            const progress = document.getElementById('quiz-progress');
+            const bar = document.getElementById('quiz-progress-bar');
+            const btnText = document.getElementById('quiz-btn-text');
+
+            questionText.classList.remove('animate-fadeIn');
+            void questionText.offsetWidth; // Trigger reflow
+
+            questionText.innerText = currentQuiz[quizIdx];
+            questionText.classList.add('animate-fadeIn');
+
+            progress.innerText = `Question ${quizIdx + 1} of 10`;
+            bar.style.width = `${((quizIdx + 1) / 10) * 100}%`;
+
+            if (quizIdx === 9) btnText.innerText = "Finish Quiz! 🏆";
+            else btnText.innerText = "Answered! Next ❤️";
+
+            createHeartEffect(); // Add some love!
+        }
+
+        function nextQuizQuestion() {
+            if (quizIdx < 9) {
+                quizIdx++;
+                showQuizQuestion();
+            } else {
+                completeQuiz();
+            }
+        }
+
+        function completeQuiz() {
+            document.getElementById('quiz-question-text').innerText = "Quiz Completed! 💍 You both are amazing lovers.";
+            setTimeout(() => closeQuiz(), 3000);
+        }
+
+        function closeQuiz() {
+            document.getElementById('quiz-modal').classList.add('hidden');
+        }
+
+        // Functionalize the "Start Game" card button
+        window.addEventListener('load', () => {
+            const startBtn = document.querySelector('.reveal-card button');
+            if (startBtn) startBtn.onclick = startQuiz;
+        });
+
+
+        // --- CAMERA LOGIC ---
+        let stream = null;
+        async function openCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                const video = document.getElementById('camera-preview');
+                video.srcObject = stream;
+                document.getElementById('camera-modal').classList.remove('hidden');
+            } catch (err) { alert("Camera not accessible! ❌"); }
+        }
+
+        function closeCamera() {
+            if (stream) stream.getTracks().forEach(t => t.stop());
+            document.getElementById('camera-modal').classList.add('hidden');
+        }
+
+        async function capturePhoto() {
+            const video = document.getElementById('camera-preview');
+            const canvas = document.getElementById('photo-canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+
+            const imageData = canvas.toDataURL('image/jpeg');
+            closeCamera();
+
+            // Send as snap
+            try {
+                await fetch('/api/send-snap', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData, coupleId: COUPLE_ID })
+                });
+                createHeartEffect();
+            } catch (e) { console.error(e); }
+        }
+
+        document.getElementById('capture-btn')?.addEventListener('click', capturePhoto);
+
+        // --- VOICE LOGIC ---
+        let mediaRecorder;
+        let audioChunks = [];
+        let startTime;
+        let timerInterval;
+
+
+        let isCanceled = false;
+        let isRecording = false;
+
+        async function startRecording(e) {
+            if (e) {
+                e.preventDefault(); e.stopPropagation();
+            }
+            if (isRecording) return;
+            isRecording = true;
+            isCanceled = false;
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                mediaRecorder.onstop = async () => {
+                    if (isCanceled) return;
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.readAsDataURL(audioBlob);
+                    reader.onloadend = async () => {
+                        const base64Audio = reader.result;
+                        document.querySelector('#voice-modal h3').innerText = "Sending... 🚀";
+                        try {
+                            await fetch('/api/send-voice', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ audio: base64Audio, coupleId: COUPLE_ID })
+                            });
+                            createHeartEffect();
+                            loadMessages();
+                        } catch (err) { console.error(err); }
+                        document.getElementById('voice-modal').classList.add('hidden');
+                        document.querySelector('#voice-modal h3').innerText = "Recording...";
+                    };
+                };
+                mediaRecorder.start();
+                startTime = Date.now();
+                document.getElementById('voice-modal').classList.remove('hidden');
+                vibrateDevice();
+                timerInterval = setInterval(updateTimer, 1000);
+
+                // Window level listeners to ensure stop even if released far away
+                window.addEventListener('mouseup', stopRecording, { once: true });
+                window.addEventListener('touchend', stopRecording, { once: true });
+            } catch (e) {
+                console.error(e);
+                isRecording = false;
+                alert("Microphone permission denied! ❌");
+            }
+        }
+
+        function updateTimer() {
+            const sec = Math.floor((Date.now() - startTime) / 1000);
+            document.getElementById('timer').innerText = `00:${sec.toString().padStart(2, '0')}`;
+        }
+
+        function stopRecording() {
+            if (!isRecording) return;
+            isRecording = false;
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(t => t.stop());
+            }
+            clearInterval(timerInterval);
+        }
+
+        function cancelRecording() {
+            isCanceled = true;
+            stopRecording();
+            document.getElementById('voice-modal').classList.add('hidden');
+            audioChunks = [];
+        }
+
+
+        // --- QUICK ACTIONS ---
+        async function sendQuickLove(text) {
+            msgInput.value = text;
+            sendMessage();
+        }
+
+        // --- VOICE PLAYBACK ---
+        function playVoice(btn) {
+            if (window.currentAudio) { window.currentAudio.pause(); }
+            const src = btn.getAttribute('data-src');
+            const audio = new Audio(src);
+            window.currentAudio = audio;
+            const icon = btn.querySelector('i');
+            const container = btn.closest('.flex');
+            const bar = container.querySelector('.transition-all');
+
+            icon.className = 'fas fa-pause text-[10px]';
+            audio.play();
+            audio.ontimeupdate = () => {
+                if (audio.duration) bar.style.width = (audio.currentTime / audio.duration * 100) + '%';
+            };
+            audio.onended = () => {
+                icon.className = 'fas fa-play text-[10px]';
+                bar.style.width = '0%';
+            };
+        }
+
+        // --- HELPERS ---
+        function scrollToBottom() { chatContainer.scrollTop = chatContainer.scrollHeight; }
+        function vibrateDevice() { navigator.vibrate?.(60); }
+        function createHeartEffect() {
+            for (let i = 0; i < 6; i++) {
+                const heart = document.createElement('div');
+                heart.className = 'heart';
+                heart.innerHTML = '<i class="fas fa-heart"></i>';
+                heart.style.left = (Math.random() * 60 + 20) + 'vw';
+                heart.style.animationDuration = '2s';
+                document.getElementById('heart-container').appendChild(heart);
+                setTimeout(() => heart.remove(), 2500);
+            }
+        }
+        async function viewSnapOnce(id, image) {
+            const viewer = document.getElementById('snap-viewer');
+            const imgEl = document.getElementById('view-snap-img');
+            const timerEl = document.getElementById('snap-timer-text');
+            imgEl.src = image; viewer.classList.remove('hidden');
+            fetch('/api/open-snap', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ snapId: id }) });
+            let timeLeft = 3; timerEl.innerText = timeLeft;
+            const timer = setInterval(() => {
+                timeLeft--; timerEl.innerText = timeLeft;
+                if (timeLeft <= 0) { clearInterval(timer); viewer.classList.add('hidden'); imgEl.src = ''; loadMessages(); }
+            }, 1000);
+        }
+
+        window.addEventListener('load', () => {
+            initChat();
+            markAsDelivered();
+            setInterval(loadMessages, 1500);
+        });
+    </script>
+
+
+    <!-- Snap Viewer Overlay (View Once) -->
+    <div id="snap-viewer"
+        class="hidden fixed inset-0 z-[200] bg-black/95 flex items-center justify-center animate-fadeIn">
+        <div class="relative w-full h-full flex flex-col items-center justify-center p-4">
+            <img id="view-snap-img" src=""
+                class="max-w-full max-h-[85vh] rounded-3xl object-contain border border-white/10 shadow-2xl" />
+            <div class="mt-8 flex flex-col items-center">
+                <div class="flex items-center space-x-3 mb-2">
+                    <div class="w-10 h-10 rounded-full border-t-2 border-brand-pink animate-spin"></div>
+                    <span class="text-white font-black uppercase tracking-widest text-xs">Self-destructing...</span>
+                </div>
+                <p id="snap-timer-text" class="text-brand-pink font-black text-4xl">3</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Quiz Modal -->
+    <div id="quiz-modal"
+        class="hidden fixed inset-0 z-[300] bg-[#0a0514]/98 backdrop-blur-xl flex items-center justify-center p-6 animate-fadeIn">
+        <div class="w-full max-w-sm flex flex-col items-center text-center space-y-8">
+            <div class="relative w-32 h-32 flex items-center justify-center">
+                <div class="absolute inset-0 bg-brand-pink/20 rounded-full blur-3xl animate-pulse"></div>
+                <div
+                    class="w-16 h-16 bg-brand-pink/20 border-2 border-brand-pink/40 rounded-3xl flex items-center justify-center text-brand-pink shadow-2xl animate-bounce">
+                    <i class="fas fa-brain text-2xl"></i>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <p id="quiz-progress" class="text-[10px] font-black uppercase tracking-widest text-brand-pink/60">
+                    Question 1 of 10</p>
+                <div class="w-24 h-1 bg-white/10 mx-auto rounded-full overflow-hidden">
+                    <div id="quiz-progress-bar" class="w-1/10 h-full bg-brand-pink transition-all duration-500"></div>
+                </div>
+            </div>
+
+            <h2 id="quiz-question-text"
+                class="text-xl font-bold text-white leading-snug min-h-[100px] flex items-center justify-center italic px-4">
+                Loading your romantic quiz... 💭
+            </h2>
+
+            <div class="flex flex-col w-full space-y-4 pt-8">
+                <button onclick="nextQuizQuestion()"
+                    class="w-full py-4 bg-gradient-to-r from-brand-pink to-brand-purple rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl shadow-brand-pink/20 transition-all hover:scale-[1.02] active:scale-95 group flex items-center justify-center space-x-3">
+                    <span id="quiz-btn-text">Answered! Next ❤️</span>
+                    <i class="fas fa-arrow-right text-[10px]"></i>
+                </button>
+                <button onclick="closeQuiz()"
+                    class="text-[10px] font-bold text-gray-500 uppercase tracking-widest hover:text-white transition-colors">Close
+                    Game</button>
+            </div>
+        </div>
+    </div>
+</body>
+
+
+</html>

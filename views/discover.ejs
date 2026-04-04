@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discover Singles | LoveSync 💕</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        'brand-purple': '#4D128B',
+                        'brand-pink': '#E11D48',
+                        'neon-pink': '#FF007F',
+                        'neon-purple': '#9D50BB',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .heart {
+            position: absolute;
+            color: #FF1493;
+            pointer-events: none;
+            animation: rise 6s infinite ease-in;
+            opacity: 0;
+            z-index: 0;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translateY(100vh) scale(0.5);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(-10vh) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 2rem;
+        }
+
+        .swipe-card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+            transition: transform 0.4s ease-out, opacity 0.4s;
+            touch-action: none;
+            user-select: none;
+        }
+
+        .swipe-card:last-child {
+            z-index: 10;
+        }
+
+        .match-alert {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .match-animation {
+            animation: popCenter 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popCenter {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .floating-action {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: 0.3s;
+        }
+
+        .btn-skip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #9ca3af;
+        }
+
+        .btn-like {
+            background: linear-gradient(135deg, #FF007F, #E11D48);
+            color: white;
+            box-shadow: 0 10px 30px rgba(225, 29, 72, 0.4);
+        }
+
+        .btn-super {
+            background: rgba(157, 80, 187, 0.2);
+            border: 1px solid #9D50BB;
+            color: #9D50BB;
+        }
+
+        .toast {
+            position: fixed;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(225, 29, 72, 0.9);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 100px;
+            font-weight: 800;
+            font-size: 14px;
+            z-index: 100;
+            animation: slideDown 0.3s ease-out;
+            display: none;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateX(-50%) translateY(-20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-[#0a0514] text-white overflow-hidden font-sans min-h-screen">
+
+    <div id="toast" class="toast">Liked! ❤️</div>
+    <div id="heart-container" class="fixed inset-0 pointer-events-none z-0"></div>
+
+    <!-- Match Popup -->
+    <div id="match-popup" class="match-alert p-10">
+        <div class="text-center space-y-8 match-animation">
+            <h2
+                class="text-5xl font-black italic tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-brand-pink to-brand-purple">
+                It's a Match! ❤️</h2>
+            <div class="flex items-center justify-center -space-x-8">
+                <div class="w-32 h-32 rounded-full border-4 border-white shadow-2xl rotate-[-10deg] overflow-hidden">
+                    <img src="/images/partner-avatar.png" class="w-full h-full object-cover">
+                </div>
+                <div class="w-32 h-32 rounded-full border-4 border-white shadow-2xl rotate-[10deg] overflow-hidden">
+                    <img id="match-avatar" src="" class="w-full h-full object-cover">
+                </div>
+            </div>
+            <p class="text-sm text-gray-400 font-bold uppercase tracking-widest">Connect with them now</p>
+            <div class="flex flex-col space-y-4">
+                <button onclick="window.location.href='/chat'"
+                    class="bg-brand-pink py-5 rounded-full font-black uppercase text-xs tracking-widest shadow-xl shadow-brand-pink/30 hover:scale-105 transition-all">Start
+                    Chat 💬</button>
+                <button onclick="closeMatch()"
+                    class="text-xs font-black uppercase text-gray-500 hover:text-white transition-all">Keep
+                    Swiping</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="px-6 pt-10 pb-6 flex items-center justify-between relative z-50">
+        <div class="flex items-center space-x-6">
+            <a href="/home"
+                class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all">
+                <i class="fas fa-chevron-left text-brand-pink text-sm"></i>
+            </a>
+            <div>
+                <h1 class="text-3xl font-black tracking-tight">Discover 💕</h1>
+                <p class="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] mt-1 italic">Find your perfect
+                    partner</p>
+            </div>
+        </div>
+        <button onclick="toggleFilters()"
+            class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all">
+            <i class="fas fa-sliders-h text-brand-pink"></i>
+        </button>
+    </header>
+
+    <!-- Swipe Area -->
+    <main class="relative h-[65vh] max-w-sm mx-auto z-10 select-none">
+        <div id="card-stack" class="relative w-full h-full">
+            <!-- Cards Dyanmic -->
+            <!-- Empty State (Lower Z-index) -->
+            <div
+                class="absolute inset-0 flex flex-col items-center justify-center text-center p-10 space-y-4 opacity-40">
+                <i class="fas fa-ghost text-6xl text-brand-pink mb-4"></i>
+                <h3 class="text-xl font-black uppercase tracking-widest">No more users nearby 😅</h3>
+                <p class="text-[10px] uppercase font-bold tracking-widest leading-loose">Try changing your filters or
+                    check back later ❤️</p>
+                <button onclick="location.reload()"
+                    class="bg-white/5 border border-white/10 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest">Refresh
+                    🔄</button>
+            </div>
+        </div>
+
+        <!-- Notification Overlays on Cards (Like/Nope) -->
+        <div id="status-overlay"
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 transition-opacity">
+            <div id="status-icon"
+                class="text-8xl font-black italic tracking-widest px-8 py-2 rounded-2xl border-[10px]"></div>
+        </div>
+    </main>
+
+    <!-- Swipe Actions -->
+    <div class="flex items-center justify-center space-x-6 py-10 relative z-50">
+        <button onclick="handleAction('skip')" class="floating-action btn-skip hover:scale-110 active:scale-95"><i
+                class="fas fa-times"></i></button>
+        <button onclick="handleAction('super')"
+            class="floating-action btn-super hover:scale-110 active:scale-95 text-lg"><i
+                class="fas fa-star"></i></button>
+        <button onclick="handleAction('like')" class="floating-action btn-like hover:scale-110 active:scale-95"><i
+                class="fas fa-heart"></i></button>
+    </div>
+
+    <!-- Filters Sidebar -->
+    <div id="filters-panel"
+        class="fixed inset-y-0 right-0 w-80 bg-[#0a0514]/95 backdrop-blur-2xl border-l border-white/5 z-[1000] p-10 transform translate-x-full transition-transform duration-500 ease-in-out">
+        <div class="flex items-center justify-between mb-10">
+            <h3 class="font-black text-xl">Discovery Filters</h3>
+            <button onclick="toggleFilters()" class="text-gray-500 hover:text-white"><i
+                    class="fas fa-times"></i></button>
+        </div>
+        <div class="space-y-10">
+            <div class="space-y-4">
+                <label class="text-[10px] font-black uppercase tracking-widest text-gray-400">Distance (km)</label>
+                <input type="range" class="w-full h-1 bg-white/10 appearance-none rounded-full accent-brand-pink">
+                <div class="flex justify-between text-[10px] font-black text-gray-600">
+                    <span>1km</span><span>100km</span>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <label class="text-[10px] font-black uppercase tracking-widest text-gray-400">Age Range</label>
+                <div class="flex items-center space-x-4">
+                    <input type="number" placeholder="18"
+                        class="flex-1 bg-white/5 border border-white/10 px-4 py-2 rounded-lg text-xs font-bold font-black">
+                    <span class="text-gray-500">to</span>
+                    <input type="number" placeholder="35"
+                        class="flex-1 bg-white/5 border border-white/10 px-4 py-2 rounded-lg text-xs font-bold font-black">
+                </div>
+            </div>
+            <div class="space-y-4">
+                <label class="text-[10px] font-black uppercase tracking-widest text-gray-400">Interests</label>
+                <div class="flex flex-wrap gap-2">
+                    <span
+                        class="bg-brand-pink/20 text-brand-pink text-[9px] font-black uppercase px-3 py-1.5 rounded-full border border-brand-pink/30">Music</span>
+                    <span
+                        class="bg-white/5 text-gray-400 text-[9px] font-black uppercase px-3 py-1.5 rounded-full border border-white/10">Travel</span>
+                    <span
+                        class="bg-white/5 text-gray-400 text-[9px] font-black uppercase px-3 py-1.5 rounded-full border border-white/10">Gym</span>
+                    <span
+                        class="bg-white/5 text-gray-400 text-[9px] font-black uppercase px-3 py-1.5 rounded-full border border-white/10">Gaming</span>
+                </div>
+            </div>
+            <button onclick="toggleFilters()"
+                class="w-full bg-btn-gradient py-4 rounded-xl font-black uppercase text-xs tracking-widest mt-10">Apply
+                Filters</button>
+        </div>
+    </div>
+
+
+    <script>
+        // Floating Hearts Gen
+        const container = document.getElementById('heart-container');
+        function createHeart() {
+            const heart = document.createElement('div'); heart.classList.add('heart');
+            heart.innerHTML = '<i class="fas fa-heart"></i>'; heart.style.left = Math.random() * 100 + 'vw';
+            heart.style.fontSize = Math.random() * 10 + 10 + 'px'; heart.style.animationDuration = Math.random() * 5 + 5 + 's';
+            container.appendChild(heart);
+            setTimeout(() => heart.remove(), 10000);
+        }
+        setInterval(createHeart, 1000);
+
+        // Mock Users
+        const users = [
+            { id: 1, name: "Priya", age: 22, user: "@priya_sun", bio: "Traveling the world one heart at a time. Coffee lover ☕", interests: ["Travel", "Photography"], img: "https://api.dicebear.com/7.x/avataaars/svg?seed=Priya" },
+            { id: 2, name: "Sneha", age: 24, user: "@sneha_shine", bio: "Gamer girl. Fitness enthusiast. Music is life 🎧", interests: ["Gaming", "Gym"], img: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sneha" },
+            { id: 3, name: "Anish", age: 25, user: "@anish_cool", bio: "Tech geek. Loves sunsets and deep talks.", interests: ["Tech", "Nature"], img: "https://api.dicebear.com/7.x/avataaars/svg?seed=Anish" },
+            { id: 4, name: "Kaira", age: 23, user: "@kaira_vibes", bio: "Dance like no one is watching. ✨", interests: ["Dance", "Pizza"], img: "https://api.dicebear.com/7.x/avataaars/svg?seed=Kaira" }
+        ];
+
+        const cardStack = document.getElementById('card-stack');
+        let currentCardIndex = users.length - 1;
+
+        function createCard(user) {
+            const card = document.createElement('div');
+            card.className = 'swipe-card glass-card overflow-hidden';
+            card.innerHTML = `
+                <div class="relative h-full">
+                    <img src="${user.img}" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
+                    <div class="absolute bottom-6 left-6 right-6">
+                        <div class="flex items-center space-x-3 mb-2">
+                            <h2 class="text-3xl font-black italic tracking-tighter">${user.name}, ${user.age}</h2>
+                            <i class="fas fa-check-circle text-blue-400 text-sm"></i>
+                        </div>
+                        <p class="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-3">${user.user}</p>
+                        <p class="text-xs text-gray-300 font-medium line-clamp-2 mb-4 leading-relaxed">${user.bio}</p>
+                        <div class="flex flex-wrap gap-2">
+                            ${user.interests.map(i => `<span class="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-white/5">${i}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function renderStack() {
+            users.forEach((user, index) => {
+                const card = createCard(user);
+                cardStack.appendChild(card);
+                initSwipe(card);
+            });
+        }
+        renderStack();
+
+        // Swipe Logic
+        function initSwipe(card) {
+            let startX, startY, moveX, moveY;
+
+            card.onmousedown = card.ontouchstart = (e) => {
+                startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+                startY = e.type === 'mousedown' ? e.clientY : e.touches[0].clientY;
+                card.style.transition = 'none';
+                card.style.cursor = 'grabbing';
+
+                document.onmousemove = document.ontouchmove = (ev) => {
+                    moveX = (ev.type === 'mousemove' ? ev.clientX : ev.touches[0].clientX) - startX;
+                    moveY = (ev.type === 'mousemove' ? ev.clientY : ev.touches[0].clientY) - startY;
+                    const rotation = moveX / 20;
+                    card.style.transform = `translate(${moveX}px, ${moveY}px) rotate(${rotation}deg)`;
+
+                    // Show overlays
+                    const overlay = document.getElementById('status-overlay');
+                    const icon = document.getElementById('status-icon');
+                    overlay.style.opacity = Math.min(Math.abs(moveX) / 100, 1);
+                    if (moveX > 50) {
+                        icon.innerText = "LIKE"; icon.className = "text-green-500 border-green-500 text-8xl font-black italic tracking-widest px-8 py-2 rounded-2xl border-[10px]";
+                    } else if (moveX < -50) {
+                        icon.innerText = "NOPE"; icon.className = "text-red-500 border-red-500 text-8xl font-black italic tracking-widest px-8 py-2 rounded-2xl border-[10px]";
+                    } else {
+                        overlay.style.opacity = 0;
+                    }
+                };
+
+                document.onmouseup = document.ontouchend = () => {
+                    document.onmousemove = document.ontouchmove = null;
+                    card.style.cursor = 'grab';
+                    const overlay = document.getElementById('status-overlay');
+                    overlay.style.opacity = 0;
+
+                    if (Math.abs(moveX) > 120) {
+                        dismissCard(card, moveX > 0);
+                    } else {
+                        card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                        card.style.transform = 'translate(0, 0) rotate(0)';
+                    }
+                };
+            };
+        }
+
+        function dismissCard(card, isLike) {
+            const outX = isLike ? 1000 : -1000;
+            card.style.transition = 'all 0.5s ease-in';
+            card.style.transform = `translate(${outX}px, ${moveY || 0}px) rotate(${outX / 20}deg)`;
+            card.style.opacity = '0';
+
+            if (isLike) {
+                showToast("Liked! ❤️");
+                // Simulate mutual match (50% chance)
+                if (Math.random() > 0.5) {
+                    setTimeout(() => showMatchPopup(users[currentCardIndex]), 600);
+                }
+            } else {
+                showToast("Skipped ❌");
+            }
+
+            setTimeout(() => card.remove(), 500);
+            currentCardIndex--;
+        }
+
+        function handleAction(type) {
+            const stack = cardStack.querySelectorAll('.swipe-card');
+            if (stack.length === 0) return;
+            const topCard = stack[stack.length - 1];
+
+            if (type === 'skip') dismissCard(topCard, false);
+            if (type === 'like') dismissCard(topCard, true);
+            if (type === 'super') {
+                topCard.style.transition = 'all 0.8s ease-out';
+                topCard.style.transform = 'translateY(-1000px) rotate(0deg)';
+                showToast("SUPER LIKE! ⭐");
+                setTimeout(() => topCard.remove(), 800);
+                setTimeout(() => showMatchPopup(users[currentCardIndex]), 600);
+                currentCardIndex--;
+            }
+        }
+
+        function showMatchPopup(user) {
+            const popup = document.getElementById('match-popup');
+            document.getElementById('match-avatar').src = user.img;
+            popup.style.display = 'flex';
+            navigator.vibrate?.([100, 50, 100, 50, 400]);
+        }
+
+        function closeMatch() {
+            document.getElementById('match-popup').style.display = 'none';
+        }
+
+        function toggleFilters() {
+            const panel = document.getElementById('filters-panel');
+            panel.classList.toggle('translate-x-full');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg; toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 1500);
+        }
+    </script>
+</body>
+
+</html>

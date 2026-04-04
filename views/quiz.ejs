@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Love Quiz | LoveSync ❤️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        'brand-purple': '#4D128B',
+                        'brand-pink': '#E11D48',
+                        'neon-pink': '#FF007F',
+                        'neon-purple': '#9D50BB',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 2rem;
+        }
+
+        .quiz-container {
+            min-height: 100vh;
+            background: radial-gradient(circle at top right, #4D128B, #0a0514);
+        }
+
+        .option-btn {
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .option-btn:hover {
+            background: rgba(225, 29, 72, 0.1);
+            border-color: rgba(225, 29, 72, 0.5);
+            transform: scale(1.02);
+        }
+
+        .option-correct {
+            background: #10b981 !important;
+            border-color: #10b981 !important;
+            color: white !important;
+        }
+
+        .option-wrong {
+            background: #ef4444 !important;
+            border-color: #ef4444 !important;
+            color: white !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Floating Hearts */
+        .heart {
+            position: absolute;
+            color: #E11D48;
+            pointer-events: none;
+            animation: floatUp 4s linear infinite;
+            opacity: 0;
+            z-index: 0;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(100vh) scale(1);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 0.5;
+            }
+
+            90% {
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: translateY(-10vh) scale(0.5);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-[#0a0514] text-white font-sans selection:bg-brand-pink overflow-hidden">
+
+    <div id="heart-container" class="fixed inset-0 pointer-events-none"></div>
+
+    <div class="quiz-container flex flex-col p-6 overflow-y-auto no-scrollbar relative z-10">
+        <!-- Header -->
+        <header class="flex items-center justify-between py-6 mb-10">
+            <a href="/home"
+                class="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10"><i
+                    class="fas fa-chevron-left"></i></a>
+            <div class="text-center flex-1">
+                <h1 class="font-black text-xl italic tracking-tighter">Love Quiz <span class="text-brand-pink">🧠</span>
+                </h1>
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest" id="quiz-subtitle">Unlock at
+                    9:00 PM</p>
+            </div>
+            <div
+                class="w-10 h-10 bg-brand-pink/10 rounded-full flex items-center justify-center border border-brand-pink/20 text-brand-pink font-black text-xs">
+                🔥 15</div>
+        </header>
+
+        <!-- Main State: LOCKED -->
+        <div id="lock-screen" class="flex-1 flex flex-col items-center justify-center text-center space-y-8 fade-in">
+            <div
+                class="w-24 h-24 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-4xl shadow-2xl">
+                <i class="fas fa-lock text-brand-pink animate-pulse"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl font-black mb-2 italic">Today's Quiz is Locked! 🔒</h2>
+                <p class="text-gray-400 text-xs font-bold leading-relaxed max-w-xs mx-auto">AI is currently processing
+                    your today's messages and snaps. The quiz unlocks at <span class="text-white">9:00 PM</span> every
+                    night. 🏹</p>
+            </div>
+            <div class="space-y-2">
+                <p class="text-[10px] font-black uppercase text-gray-500 tracking-widest">Time Remaining</p>
+                <div class="text-3xl font-black tracking-tighter text-brand-pink" id="countdown-timer">00:00:00</div>
+            </div>
+        </div>
+
+        <!-- Main State: START QUIZ -->
+        <div id="start-screen"
+            class="hidden flex-1 flex flex-col items-center justify-center text-center space-y-10 fade-in">
+            <div class="w-24 h-24 bg-brand-pink/10 rounded-full flex items-center justify-center text-5xl pop-heart">❤️
+            </div>
+            <div class="space-y-4">
+                <h2 class="text-3xl font-black italic">Today's Data is Ready! ✨</h2>
+                <p class="text-gray-400 text-xs font-bold max-w-xs leading-loose">AI has generated 10 personal questions
+                    based on your interactions today with Partner. Let's see how much you care!</p>
+            </div>
+            <button onclick="startQuiz()"
+                class="w-full max-w-xs bg-brand-pink py-6 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl shadow-brand-pink/40 animate-bounce">
+                Start Now 🎯
+            </button>
+        </div>
+
+        <!-- Main State: QUESTION SCREEN -->
+        <div id="quiz-screen" class="hidden flex-1 flex flex-col space-y-8 fade-in">
+            <!-- Progress & Levels -->
+            <div class="space-y-4">
+                <div class="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-gray-500">Level:</span>
+                        <span id="q-level" class="bg-brand-pink/20 text-brand-pink px-2 py-0.5 rounded-full">Easy</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-gray-500">Score:</span>
+                        <span id="current-score" class="text-white">0</span>
+                    </div>
+                </div>
+
+                <!-- Speed Timer Bar -->
+                <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                    <div id="timer-bar" class="h-full bg-brand-pink transition-all duration-100 ease-linear"
+                        style="width: 100%"></div>
+                </div>
+
+                <div class="flex justify-between text-[8px] font-bold text-gray-500">
+                    <span>Q <span id="q-index">1</span>/10</span>
+                    <span id="timer-text">10s LEFT</span>
+                </div>
+            </div>
+
+            <!-- Question -->
+            <div class="glass-card p-10 text-center relative overflow-hidden group">
+                <div id="q-type-badge"
+                    class="absolute top-4 left-4 text-[8px] font-black uppercase text-brand-pink/40 tracking-widest">
+                    Memory Context</div>
+                <p id="question-text" class="text-xl font-black italic text-pink-50 leading-relaxed">Fetching your love
+                    data... ❤️</p>
+            </div>
+
+            <!-- Options -->
+            <div class="grid grid-cols-1 gap-4" id="options-container">
+                <!-- Buttons dynamically loaded -->
+            </div>
+
+            <!-- Evidence Card (Replay Moment) -->
+            <div id="evidence-card"
+                class="hidden p-6 bg-white/5 border border-white/10 rounded-3xl space-y-3 animate-in fade-in duration-500">
+                <p class="text-[8px] font-black uppercase text-brand-pink tracking-[0.2em] mb-2">Replay Moment 📸</p>
+                <div class="flex items-start space-x-4">
+                    <div class="w-10 h-10 bg-brand-pink/20 rounded-xl flex items-center justify-center text-brand-pink">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <p id="evidence-text" class="text-[11px] font-bold text-gray-300 leading-relaxed"></p>
+                </div>
+                <!-- Fix It Button -->
+                <button id="fix-btn" onclick="sendApology()"
+                    class="hidden w-full mt-4 bg-brand-pink/10 border border-brand-pink/20 text-brand-pink py-3 rounded-xl font-black uppercase text-[9px] tracking-widest">
+                    Send Apology ❤️
+                </button>
+            </div>
+        </div>
+
+        <!-- Bonus Round Modal -->
+        <div id="bonus-modal"
+            class="hidden fixed inset-0 z-[1000] flex items-center justify-center p-10 bg-black/80 backdrop-blur-md fade-in">
+            <div class="glass-card p-10 w-full max-w-sm text-center relative overflow-hidden">
+                <div class="text-5xl mb-6">🎁</div>
+                <h3 class="text-2xl font-black italic mb-4">Bonus Unlock! ❤️</h3>
+                <p class="text-gray-400 text-xs font-bold leading-loose mb-8">Score was decent, but a little love goes a
+                    long way. Send a quick 'Love You' text right now to unlock +25 Bonus Points!</p>
+                <div class="flex flex-col space-y-4">
+                    <button onclick="sendBonus()"
+                        class="w-full bg-brand-pink py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-brand-pink/40">Send
+                        & Claim ❤️</button>
+                    <button onclick="closeBonus()"
+                        class="text-gray-500 font-black uppercase text-[10px] tracking-widest">Skip (Lame 😏)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main State: RESULT SCREEN -->
+        <div id="result-screen"
+            class="hidden flex-1 flex flex-col items-center justify-center text-center space-y-10 fade-in py-10">
+            <div class="relative w-48 h-48 flex items-center justify-center mx-auto mb-4">
+                <svg class="w-full h-full -rotate-90">
+                    <circle cx="96" cy="96" r="80" stroke="currentColor" stroke-width="12" fill="transparent"
+                        class="text-white/5" />
+                    <circle id="score-circle" cx="96" cy="96" r="80" stroke="currentColor" stroke-width="12"
+                        fill="transparent" stroke-dasharray="502.65" stroke-dashoffset="502.65"
+                        class="text-brand-pink transition-all duration-1000" />
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <span class="text-5xl font-black" id="final-percent">0%</span>
+                    <span class="text-[9px] font-black uppercase text-gray-500 tracking-widest mt-2">Love Score
+                        ❤️</span>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="text-3xl font-black italic" id="result-badge">Attention King 👑</h2>
+                <p id="result-feedback" class="text-gray-400 text-[11px] font-bold leading-loose max-w-xs mx-auto">You
+                    really care about the small details. Your partner loves that about you! ❤️</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 w-full">
+                <div class="glass-card p-5 text-center">
+                    <p class="text-[8px] font-black uppercase text-gray-500 tracking-widest mb-1">Current Streak</p>
+                    <p class="text-xl font-black italic">15 Days 🔥</p>
+                </div>
+                <div class="glass-card p-5 text-center">
+                    <p class="text-[8px] font-black uppercase text-gray-500 tracking-widest mb-1">Time Bonus</p>
+                    <p class="text-xl font-black italic text-brand-pink">+25 pts</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col space-y-4 w-full">
+                <button onclick="window.location.href='/home'"
+                    class="w-full bg-brand-pink text-white py-6 rounded-[2rem] font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-brand-pink/40">
+                    Done for Today ❤️
+                </button>
+                <p class="text-[10px] font-bold text-gray-500 italic">Come back tomorrow at 9 PM for your next challenge
+                    🌙</p>
+            </div>
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // Data & State
+        let questions = [];
+        let currentIdx = 0;
+        let totalScore = 0;
+        let canAnswer = true;
+        let timerInterval;
+        let timeLeft = 10;
+
+        // Check Quiz Status
+        async function checkStatus() {
+            const res = await fetch('/api/quiz-status');
+            const status = await res.json();
+
+            const lockSection = document.getElementById('lock-screen');
+            const startSection = document.getElementById('start-screen');
+            const subtitle = document.getElementById('quiz-subtitle');
+
+            if (status.active) {
+                lockSection.classList.add('hidden');
+                startSection.classList.remove('hidden');
+                subtitle.innerText = "Active Now ❤️";
+                // Pre-fetch questions
+                fetchQuestions();
+            } else {
+                subtitle.innerText = "Unlock at 9:00 PM";
+                startCountdown();
+            }
+        }
+
+        function startCountdown() {
+            const timerEl = document.getElementById('countdown-timer');
+            function update() {
+                const now = new Date();
+                const target = new Date();
+                target.setHours(21, 0, 0, 0);
+                if (now >= target) { window.location.reload(); return; }
+
+                const diff = target - now;
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                timerEl.innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+            setInterval(update, 1000);
+            update();
+        }
+
+        async function fetchQuestions() {
+            try {
+                const res = await fetch('/api/generate-quiz');
+                const data = await res.json();
+                questions = data.questions || [];
+                console.log("Quiz Loaded:", questions);
+            } catch (e) {
+                console.error("Quiz Fetch Failed:", e);
+                questions = [];
+            }
+        }
+
+        function startQuiz() {
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('hidden');
+            renderQuestion();
+        }
+
+        function startTimer() {
+            timeLeft = 10;
+            const bar = document.getElementById('timer-bar');
+            const text = document.getElementById('timer-text');
+
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft -= 0.1;
+                bar.style.width = (timeLeft * 10) + '%';
+                text.innerText = Math.ceil(timeLeft) + 's LEFT';
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    selectOption(null, null, questions[currentIdx].a); // Time out
+                }
+            }, 100);
+        }
+
+        function renderQuestion() {
+            if (currentIdx >= questions.length) {
+                showResults();
+                return;
+            }
+
+            canAnswer = true;
+            document.getElementById('evidence-card').classList.add('hidden');
+            document.getElementById('fix-btn').classList.add('hidden');
+            const q = questions[currentIdx];
+
+            document.getElementById('question-text').innerText = q.q;
+            document.getElementById('q-index').innerText = currentIdx + 1;
+            document.getElementById('q-level').innerText = q.l;
+            document.getElementById('q-type-badge').innerText = q.t + " CONTEXT";
+
+            startTimer();
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            q.o.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "option-btn w-full p-5 glass-card text-left font-bold text-sm border-white/5 transition-all outline-none";
+                btn.innerText = opt;
+                btn.onclick = () => selectOption(btn, opt, q.a);
+                container.appendChild(btn);
+            });
+        }
+
+        function selectOption(btn, selected, correct) {
+            if (!canAnswer) return;
+            canAnswer = false;
+            clearInterval(timerInterval);
+
+            const q = questions[currentIdx];
+            const evidenceCard = document.getElementById('evidence-card');
+            const evidenceText = document.getElementById('evidence-text');
+            const fixBtn = document.getElementById('fix-btn');
+
+            evidenceCard.classList.remove('hidden');
+            evidenceText.innerText = q.ev;
+
+            if (selected === correct) {
+                if (btn) btn.classList.add('option-correct');
+                let points = 10;
+                if (timeLeft > 5) points += 5;
+                totalScore += points;
+                document.getElementById('current-score').innerText = totalScore;
+                playVibration([50]);
+            } else {
+                if (btn) btn.classList.add('option-wrong');
+                fixBtn.classList.remove('hidden');
+                document.querySelectorAll('.option-btn').forEach(b => {
+                    if (b.innerText === correct) b.classList.add('option-correct');
+                });
+                playVibration([200]);
+            }
+
+            setTimeout(() => {
+                currentIdx++;
+                renderQuestion();
+            }, 4000); // 4s to read evidence
+        }
+
+        function sendApology() {
+            alert("Apology Sent to Partner ❤️. She'll appreciate you noticing! +5 Point Recovery.");
+            totalScore += 5;
+            document.getElementById('current-score').innerText = totalScore;
+            document.getElementById('fix-btn').classList.add('hidden');
+        }
+
+        function showResults() {
+            document.getElementById('quiz-screen').classList.add('hidden');
+            const resultSection = document.getElementById('result-screen');
+            resultSection.classList.remove('hidden');
+
+            const percent = Math.min(Math.round((totalScore / 100) * 100), 100);
+            document.getElementById('final-percent').innerText = percent + '%';
+
+            // Persist to MongoDB
+            fetch('/api/quiz-complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ score: totalScore })
+            });
+
+            const circle = document.getElementById('score-circle');
+            const circumference = 2 * Math.PI * 80;
+            const offset = circumference - (percent / 100 * circumference);
+            circle.style.strokeDashoffset = offset;
+
+            const badge = document.getElementById('result-badge');
+            const feedback = document.getElementById('result-feedback');
+
+            if (percent >= 90) {
+                badge.innerText = "Attention King 👑";
+                feedback.innerText = "You know her really well 😍. Every detail, every mood—you nailed it! Partner is lucky to have you.";
+            } else if (percent >= 60) {
+                badge.innerText = "Good Partner 😊";
+                feedback.innerText = "You kept up well, but missed some key moments. Focus more, bro—she deserves total attention! 😏";
+            } else {
+                badge.innerText = "Ghost Partner 👻";
+                feedback.innerText = "Bhai... serious attention ki zaroorat hai. She specifically mentioned these things today! Reconnect now! 😳🏹";
+            }
+
+            setTimeout(() => {
+                document.getElementById('bonus-modal').classList.remove('hidden');
+            }, 3000);
+        }
+
+        function sendBonus() {
+            alert("Love Message Sent! +25 Bonus Points Added 🏆");
+            totalScore += 25;
+            document.getElementById('final-percent').innerText = '100% (WINNER)';
+            closeBonus();
+        }
+
+        function closeBonus() {
+            document.getElementById('bonus-modal').classList.add('hidden');
+        }
+
+        function playVibration(pattern) { navigator.vibrate?.(pattern); }
+        window.onload = checkStatus;
+
+        // Floating Hearts Generation
+        const heartContainer = document.getElementById('heart-container');
+        function createHeart() {
+            const heart = document.createElement('div');
+            heart.classList.add('heart');
+            heart.innerHTML = '<i class="fas fa-heart"></i>';
+            heart.style.left = Math.random() * 100 + 'vw';
+            heart.style.animationDuration = (Math.random() * 2 + 3) + 's';
+            heartContainer.appendChild(heart);
+            setTimeout(() => heart.remove(), 4000);
+        }
+        setInterval(createHeart, 1000);
+    </script>
+</body>
+
+</html>

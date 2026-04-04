@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoveSync | Connection Starts Here ❤️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        'brand-purple': '#4D128B',
+                        'brand-pink': '#E11D48',
+                        'neon-pink': '#FF007F',
+                        'neon-purple': '#9D50BB',
+                    },
+                    backgroundImage: {
+                        'btn-gradient': 'linear-gradient(to right, #E11D48, #9333EA)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .heart {
+            position: absolute;
+            color: #FF1493;
+            pointer-events: none;
+            animation: rise 6s infinite ease-in;
+            opacity: 0;
+            z-index: 0;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translateY(100vh) scale(0.5);
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+
+            100% {
+                transform: translateY(-10vh) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glow-input:focus {
+            box-shadow: 0 0 15px rgba(225, 29, 72, 0.4);
+            border-color: #E11D48;
+        }
+
+        .tab-btn.active {
+            background: rgba(225, 29, 72, 0.1);
+            color: #E11D48;
+            border-bottom: 2px solid #E11D48;
+        }
+
+        .transition-form {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+
+<body class="bg-[#0a0514] text-white overflow-x-hidden font-sans min-h-screen flex flex-col">
+
+    <!-- Animated Heart Background -->
+    <div id="heart-container" class="fixed inset-0 overflow-hidden pointer-events-none z-0"></div>
+
+    <!-- Navbar -->
+    <nav class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-6 py-4" id="main-nav">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <a href="/" class="flex items-center space-x-2 group">
+                <div
+                    class="w-10 h-10 bg-btn-gradient rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                    <i class="fas fa-heart text-white"></i>
+                </div>
+                <span
+                    class="text-2xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-pink-200">
+                    LoveSync <span class="text-xs align-top ml-1 text-pink-500">❤️</span>
+                </span>
+            </a>
+
+            <div class="hidden md:flex items-center space-x-10 text-gray-300 font-medium">
+                <a href="/" class="hover:text-pink-500 transition-colors">Home</a>
+                <a href="/#features" class="hover:text-pink-500 transition-colors">Features</a>
+                <a href="/#faq" class="hover:text-pink-500 transition-colors">FAQ</a>
+            </div>
+
+            <button onclick="window.location.href='/auth'"
+                class="bg-btn-gradient px-6 py-2.5 rounded-full font-bold shadow-lg shadow-pink-500/20 hover:shadow-pink-500/40 hover:scale-105 transition-all glow-hover">
+                Get Started <i class="fas fa-chevron-right ml-1 text-sm"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex items-center justify-center pt-40 pb-20 px-4 md:px-10 relative z-10">
+        <div class="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+
+            <!-- Left Side: Illustration (Hidden on Mobile but show text) -->
+            <div class="hidden lg:flex flex-col items-center text-center space-y-8 animate-fadeIn">
+                <div class="relative w-full max-w-md">
+                    <img src="/images/auth-illustration.png" alt="Couple Illustration"
+                        class="w-full drop-shadow-[0_0_40px_rgba(225,29,72,0.2)] hover:scale-105 transition-transform duration-700">
+                    <div class="absolute -top-10 -left-10 w-32 h-32 bg-pink-500/10 blur-3xl animate-pulse"></div>
+                    <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-500/10 blur-3xl animate-pulse"></div>
+                </div>
+                <div class="space-y-4">
+                    <h1 class="text-5xl font-black tracking-tight leading-tight">
+                        Stay Close, Even <br />
+                        <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-pink to-purple-400">When
+                            Apart ❤️</span>
+                    </h1>
+                    <p class="text-gray-400 text-xl max-w-md mx-auto leading-relaxed">
+                        Connect, share snaps & grow your bond daily with the world's most romantic couple app.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Right Side: Auth Card -->
+            <div class="w-full max-w-md mx-auto">
+                <div class="glass-card rounded-[2.5rem] p-8 md:p-10 shadow-2xl relative overflow-hidden group">
+                    <!-- Subtle glow top-right -->
+                    <div
+                        class="absolute top-0 right-0 w-32 h-32 bg-brand-pink/10 blur-2xl -mr-16 -mt-16 group-hover:bg-brand-pink/20 transition-colors">
+                    </div>
+
+                    <!-- App Logo (Small) -->
+                    <div class="flex flex-col items-center mb-8">
+                        <div
+                            class="w-12 h-12 bg-btn-gradient rounded-xl mb-3 flex items-center justify-center shadow-lg">
+                            <i class="fas fa-heart text-white text-xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold tracking-tight">LoveSync</h2>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="flex mb-8 bg-white/5 p-1 rounded-2xl border border-white/5">
+                        <button onclick="switchTab('signin')" id="tab-signin"
+                            class="flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-300 tab-btn active">Sign
+                            In</button>
+                        <button onclick="switchTab('signup')" id="tab-signup"
+                            class="flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-300 tab-btn">Sign
+                            Up</button>
+                    </div>
+
+                    <!-- Sign In Form -->
+                    <div id="form-signin" class="transition-form space-y-6">
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Email /
+                                Phone</label>
+                            <div class="relative group">
+                                <i
+                                    class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-brand-pink transition-colors"></i>
+                                <input type="email" id="signin-email" placeholder="name@love.com"
+                                    class="w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-12 pr-4 outline-none transition-all glow-input hover:bg-white/10 focus:bg-white/10">
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="flex justify-between px-1">
+                                <label
+                                    class="text-xs font-bold text-gray-400 uppercase tracking-widest">Password</label>
+                                <a href="#" class="text-xs font-bold text-brand-pink hover:underline">Forgot?</a>
+                            </div>
+                            <div class="relative group">
+                                <i
+                                    class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-brand-pink transition-colors"></i>
+                                <input type="password" id="signin-password" placeholder="••••••••"
+                                    class="w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-12 pr-4 outline-none transition-all glow-input hover:bg-white/10 focus:bg-white/10">
+                                <button onclick="togglePass('signin-password', 'eye-signin')"
+                                    class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors">
+                                    <i id="eye-signin" class="fas fa-eye-slash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center space-x-2 px-1">
+                            <input type="checkbox" id="remember"
+                                class="w-4 h-4 accent-brand-pink rounded cursor-pointer">
+                            <label for="remember"
+                                class="text-sm text-gray-400 cursor-pointer hover:text-white transition-colors">Remember
+                                me</label>
+                        </div>
+
+                        <button onclick="handleAuth('login')"
+                            class="w-full bg-btn-gradient py-4 rounded-xl font-black text-lg shadow-[0_4px_20px_rgba(225,29,72,0.3)] hover:shadow-[0_4px_30px_rgba(225,29,72,0.5)] transform hover:-translate-y-1 transition-all active:scale-95">
+                            Login ❤️
+                        </button>
+
+                        <div class="relative my-8 py-2">
+                            <div class="absolute inset-0 flex items-center">
+                                <div class="w-full border-t border-white/5"></div>
+                            </div>
+                            <div class="relative flex justify-center text-xs uppercase"><span
+                                    class="bg-[#120822] px-3 text-gray-500 font-bold">Or continue with</span></div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <button
+                                class="flex items-center justify-center space-x-2 bg-white/5 hover:bg-white/10 border border-white/10 py-3 rounded-xl transition-all">
+                                <i class="fab fa-google text-brand-pink"></i>
+                                <span class="text-sm font-bold">Google</span>
+                            </button>
+                            <button
+                                class="flex items-center justify-center space-x-2 bg-white/5 hover:bg-white/10 border border-white/10 py-3 rounded-xl transition-all">
+                                <i class="fab fa-facebook text-blue-500"></i>
+                                <span class="text-sm font-bold">Facebook</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sign Up Form (Hidden by Default) -->
+                    <div id="form-signup" class="hidden transition-form space-y-6">
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Full
+                                Name</label>
+                            <div class="relative group">
+                                <i
+                                    class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-brand-pink transition-colors"></i>
+                                <input type="text" id="signup-name" placeholder="John Doe"
+                                    class="w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-12 pr-4 outline-none transition-all glow-input hover:bg-white/10 focus:bg-white/10">
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Email /
+                                Phone</label>
+                            <div class="relative group">
+                                <i
+                                    class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-brand-pink transition-colors"></i>
+                                <input type="email" id="signup-email" placeholder="name@love.com"
+                                    class="w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-12 pr-4 outline-none transition-all glow-input hover:bg-white/10 focus:bg-white/10">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label
+                                    class="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Password</label>
+                                <input type="password" id="signup-password" placeholder="••••••••"
+                                    class="w-full bg-white/5 border border-white/10 rounded-xl py-4 px-4 outline-none transition-all glow-input hover:bg-white/10 focus:bg-white/10">
+                            </div>
+                            <div class="space-y-1">
+                                <label
+                                    class="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Confirm</label>
+                                <input type="password" id="signup-confirm" placeholder="••••••••"
+                                    class="w-full bg-white/5 border border-white/10 rounded-xl py-4 px-4 outline-none transition-all glow-input hover:bg-white/10 focus:bg-white/10">
+                            </div>
+                        </div>
+
+                        <div class="flex items-start space-x-2 px-1">
+                            <input type="checkbox" id="terms"
+                                class="mt-1 w-4 h-4 accent-brand-pink rounded cursor-pointer">
+                            <label for="terms"
+                                class="text-xs text-gray-400 cursor-pointer hover:text-white leading-relaxed">
+                                I agree to the <a href="#" class="text-brand-pink hover:underline">Terms of Service</a>
+                                and <a href="#" class="text-brand-pink hover:underline">Privacy Policy</a>
+                            </label>
+                        </div>
+
+                        <button onclick="handleAuth('signup')"
+                            class="w-full bg-btn-gradient py-4 rounded-xl font-black text-lg shadow-[0_4px_20px_rgba(225,29,72,0.3)] hover:shadow-[0_4px_30px_rgba(225,29,72,0.5)] transform hover:-translate-y-1 transition-all active:scale-95">
+                            Create Account 💕
+                        </button>
+                    </div>
+
+                    <!-- Footer Link -->
+                    <div class="mt-8 text-center">
+                        <p id="auth-footer-text" class="text-sm text-gray-500">
+                            Already in love? <a href="javascript:void(0)" onclick="switchTab('signin')"
+                                class="text-brand-pink font-bold hover:underline">Log in 💖</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Global Footer -->
+    <footer class="py-8 text-center border-t border-white/5 relative z-10">
+        <p class="text-gray-500 text-sm mb-2">Made with ❤️ for couples</p>
+        <div class="flex justify-center space-x-6 text-xs text-gray-600 font-bold uppercase tracking-widest">
+            <a href="#" class="hover:text-brand-pink transition-colors">Privacy</a>
+            <span>|</span>
+            <a href="#" class="hover:text-brand-pink transition-colors">Terms</a>
+        </div>
+    </footer>
+
+    <script>
+        // Floating Hearts Gen
+        const container = document.getElementById('heart-container');
+        const heartCount = 20;
+
+        function createHeart() {
+            const heart = document.createElement('div');
+            heart.classList.add('heart');
+            heart.innerHTML = '<i class="fas fa-heart"></i>';
+            const left = Math.random() * 100;
+            const size = Math.random() * (20 - 10) + 10;
+            const duration = Math.random() * (10 - 5) + 5;
+            const delay = Math.random() * 10;
+            heart.style.left = left + 'vw';
+            heart.style.fontSize = size + 'px';
+            heart.style.animationDuration = duration + 's';
+            heart.style.animationDelay = -delay + 's';
+            container.appendChild(heart);
+        }
+
+        for (let i = 0; i < heartCount; i++) createHeart();
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('main-nav');
+            if (window.scrollY > 50) {
+                nav.classList.add('bg-[#0a0514]/80', 'backdrop-blur-md', 'border-b', 'border-white/5', 'py-3');
+                nav.classList.remove('py-4');
+            } else {
+                nav.classList.remove('bg-[#0a0514]/80', 'backdrop-blur-md', 'border-b', 'border-white/5', 'py-3');
+                nav.classList.add('py-4');
+            }
+        });
+
+        // Animation for forms
+        function switchTab(type) {
+            const siForm = document.getElementById('form-signin');
+            const suForm = document.getElementById('form-signup');
+            const siTab = document.getElementById('tab-signin');
+            const suTab = document.getElementById('tab-signup');
+            const footerText = document.getElementById('auth-footer-text');
+
+            if (type === 'signin') {
+                siForm.classList.remove('hidden');
+                suForm.classList.add('hidden');
+                siTab.classList.add('active');
+                suTab.classList.remove('active');
+                footerText.innerHTML = 'New here? <a href="javascript:void(0)" onclick="switchTab(\'signup\')" class="text-brand-pink font-bold hover:underline">Start your journey ❤️</a>';
+            } else {
+                siForm.classList.add('hidden');
+                suForm.classList.remove('hidden');
+                siTab.classList.remove('active');
+                suTab.classList.add('active');
+                footerText.innerHTML = 'Already in love? <a href="javascript:void(0)" onclick="switchTab(\'signin\')" class="text-brand-pink font-bold hover:underline">Log in 💖</a>';
+            }
+        }
+
+        function togglePass(id, eyeId) {
+            const input = document.getElementById(id);
+            const eye = document.getElementById(eyeId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                eye.classList.replace('fa-eye-slash', 'fa-eye');
+            } else {
+                input.type = 'password';
+                eye.classList.replace('fa-eye', 'fa-eye-slash');
+            }
+        }
+
+        async function handleAuth(type) {
+            let body = {};
+            if (type === 'login') {
+                const email = document.getElementById('signin-email').value;
+                const password = document.getElementById('signin-password').value;
+                if (!email || !password) return alert("Please fill all fields! 😂");
+                body = { email, password };
+            } else {
+                const name = document.getElementById('signup-name').value;
+                const email = document.getElementById('signup-email').value;
+                const password = document.getElementById('signup-password').value;
+                const confirm = document.getElementById('signup-confirm').value;
+
+                if (!name || !email || !password) return alert("All fields are required! 🧐");
+                if (password !== confirm) return alert("Passwords do not match! ❌");
+                body = { name, email, password };
+            }
+
+            try {
+                const res = await fetch(`/api/${type}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    localStorage.setItem("user", JSON.stringify(data.user));
+                    window.location.href = '/home';
+                } else {
+                    alert(data.error || "Something went wrong!");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Connection error! Check your internet. 🌐");
+            }
+        }
+    </script>
+    <style>
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        .animate-shake {
+            animation: shake 0.2s 2;
+        }
+
+        .animate-fadeIn {
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</body>
+
+</html>

@@ -1,0 +1,273 @@
+<script>
+    const socket = io();
+    const chatContainer = document.getElementById('chat-container');
+    const msgInput = document.getElementById('msg-input');
+    const sendBtn = document.getElementById('send-btn');
+    const typingIndicator = document.getElementById('typing-indicator');
+
+    let USER_ID, PARTNER_ID, USER_NAME, COUPLE_ID;
+
+    // --- AUTH & ROOM INIT ---
+    async function initChat() {
+        try {
+            const res = await fetch('/api/partner');
+            const p = await res.json();
+
+            USER_ID = "<%= user._id %>";
+            USER_NAME = "<%= user.name %>";
+            PARTNER_ID = p.partnerId;
+
+            if (!PARTNER_ID) {
+                alert("Akele chat karoge? 😂 Connect with your partner first!");
+                location.href = '/home';
+                return;
+            }
+
+            document.getElementById('header-partner-name').innerText = p.name;
+            COUPLE_ID = [USER_ID, PARTNER_ID].sort().join('_');
+            socket.emit('join', { userId: USER_ID, partnerId: PARTNER_ID });
+
+        } catch (e) { console.error(e); }
+    }
+    initChat();
+
+    // --- SOCKET EVENTS ---
+    socket.on('load messages', (messages) => {
+        chatContainer.innerHTML = ''; // Clear welcome cards if history exists
+        messages.forEach(renderMessage);
+        scrollToBottom();
+    });
+
+    socket.on('chat message', (msg) => {
+        renderMessage(msg);
+        scrollToBottom();
+        if (msg.senderId !== USER_ID) {
+            new Audio('https://assets.mixkit.co/sfx/preview/mixkit-positive-notification-951.mp3').play();
+            navigator.vibrate?.(40);
+        }
+    });
+
+    socket.on('typing', (data) => {
+        typingIndicator.classList.toggle('hidden', !data.isTyping);
+    });
+
+    // --- MESSAGE SENDING ---
+    function sendMessage() {
+        const text = msgInput.value.trim();
+        if (!text) return;
+
+        socket.emit('chat message', {
+            userId: USER_ID, partnerId: PARTNER_ID, userName: USER_NAME,
+            text: text, type: 'text'
+        });
+
+        // Persist activity for metrics
+        fetch('/api/activity', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'message', content: text })
+        });
+
+        msgInput.value = '';
+        createHeartEffect();
+    }
+
+    function sendQuickLove(text) {
+        socket.emit('chat message', {
+            userId: USER_ID, partnerId: PARTNER_ID, userName: USER_NAME,
+            text: text, type: 'text'
+        });
+        createHeartEffect();
+    }
+
+    // --- MEDIA RENDERING ---
+    function renderMessage(msg) {
+        const isMe = msg.senderId === USER_ID;
+        let contentHTML = '';
+
+        if (msg.type === 'image') {
+            contentHTML = `<img src="${msg.text}" class="w-64 rounded-3xl border border-white/10 shadow-2xl hover:scale-105 transition-all cursor-zoom-in" onclick="window.open(this.src)">`;
+        } else if (msg.type === 'audio') {
+            contentHTML = `<div class="flex items-center space-x-3 bg-white/5 p-4 rounded-3xl border border-white/5 min-w-[200px]">
+                        <button onclick="playVoice(this)" data-src="${msg.text}" class="w-10 h-10 rounded-full bg-brand-pink flex items-center justify-center shadow-lg transition-transform active:scale-90"><i class="fas fa-play text-[10px]"></i></button>
+                        <div class="flex-grow h-1 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-brand-pink w-0 transition-all"></div></div>
+                        <span class="text-[8px] font-black opacity-40 uppercase">Voice</span>
+                    </div>`;
+        } else {
+            contentHTML = `<p class="text-sm font-medium leading-relaxed">${msg.text}</p>`;
+        }
+
+        const bubble = document.createElement('div');
+        bubble.className = `flex ${isMe ? 'justify-end' : 'justify-start'} w-full group animate-in slide-in-from-${isMe ? 'right' : 'left'} duration-300`;
+
+        bubble.innerHTML = `
+                <div class="max-w-[85%] ${isMe ? 'order-2' : 'order-1'}">
+                    <div class="msg-bubble ${isMe ? 'msg-right' : 'msg-left'} group relative cursor-pointer" onclick="showReactions(this)">
+                        ${contentHTML}
+                        <div class="flex items-center justify-end space-x-2 mt-1 opacity-60">
+                            <span class="text-[8px] font-bold uppercase">${msg.time}</span>
+                            ${isMe ? '<i class="fas fa-check-double text-[8px]"></i>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        chatContainer.appendChild(bubble);
+    }
+
+    function playVoice(btn) {
+        const audio = new Audio(btn.dataset.src);
+        const progress = btn.nextElementSibling.firstChild;
+        const icon = btn.querySelector('i');
+
+        if (btn.playing) { audio.pause(); return; }
+
+        icon.classList.replace('fa-play', 'fa-pause');
+        audio.play();
+        btn.playing = true;
+
+        audio.ontimeupdate = () => {
+            progress.style.width = (audio.currentTime / audio.duration * 100) + '%';
+        };
+        audio.onended = () => {
+            icon.classList.replace('fa-pause', 'fa-play');
+            progress.style.width = '0%';
+            btn.playing = false;
+        };
+    }
+
+    // --- CAMERA LOGIC ---
+    let stream;
+    async function openCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            document.getElementById('camera-preview').srcObject = stream;
+            document.getElementById('camera-modal').classList.remove('hidden');
+        } catch (e) { alert("Camera Permission Required! 🥺"); }
+    }
+
+    function closeCamera() {
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        document.getElementById('camera-modal').classList.add('hidden');
+    }
+
+    document.getElementById('capture-btn').onclick = () => {
+        const video = document.getElementById('camera-preview');
+        const canvas = document.getElementById('photo-canvas');
+        const flash = document.getElementById('flash');
+
+        flash.classList.remove('hidden');
+        setTimeout(() => flash.classList.add('hidden'), 50);
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+
+        socket.emit('chat message', {
+            userId: USER_ID, partnerId: PARTNER_ID, userName: USER_NAME,
+            text: canvas.toDataURL('image/jpeg', 0.6), type: 'image'
+        });
+
+        closeCamera();
+        vibrateDevice();
+    };
+
+    // --- VOICE LOGIC ---
+    let mediaRecorder, chunks = [];
+    let recordTimer, recordSeconds = 0;
+
+    async function startRecording() {
+        try {
+            chunks = []; recordSeconds = 0;
+            const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(audioStream);
+
+            mediaRecorder.ondataavailable = e => chunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                const reader = new FileReader();
+                reader.readAsDataURL(blob);
+                reader.onloadend = () => {
+                    socket.emit('chat message', {
+                        userId: USER_ID, partnerId: PARTNER_ID, userName: USER_NAME,
+                        text: reader.result, type: 'audio'
+                    });
+                };
+                audioStream.getTracks().forEach(t => t.stop());
+            };
+
+            mediaRecorder.start();
+            document.getElementById('voice-modal').classList.remove('hidden');
+            recordTimer = setInterval(() => {
+                recordSeconds++;
+                const m = Math.floor(recordSeconds / 60).toString().padStart(2, '0');
+                const s = (recordSeconds % 60).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = `${m}:${s}`;
+            }, 1000);
+        } catch (e) { alert("Mic Permission Required! 🎙️"); }
+    }
+
+    function stopRecording() {
+        if (mediaRecorder?.state === 'recording') mediaRecorder.stop();
+        document.getElementById('voice-modal').classList.add('hidden');
+        clearInterval(recordTimer);
+    }
+
+    function cancelRecording() {
+        if (mediaRecorder?.state === 'recording') {
+            mediaRecorder.onstop = null;
+            mediaRecorder.stop();
+        }
+        document.getElementById('voice-modal').classList.add('hidden');
+        clearInterval(recordTimer);
+    }
+
+    document.getElementById('stop-rec-btn').onclick = stopRecording;
+
+    // --- UI HELPERS ---
+    function scrollToBottom() { chatContainer.scrollTop = chatContainer.scrollHeight; }
+    function vibrateDevice() { navigator.vibrate?.(60); }
+
+    sendBtn.onclick = sendMessage;
+    msgInput.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
+
+    let ttm;
+    msgInput.onkeydown = () => {
+        socket.emit('typing', { coupleId: COUPLE_ID, isTyping: true });
+        clearTimeout(ttm);
+        ttm = setTimeout(() => socket.emit('typing', { coupleId: COUPLE_ID, isTyping: false }), 2000);
+    };
+
+    function createHeartEffect() {
+        for (let i = 0; i < 6; i++) {
+            const heart = document.createElement('div');
+            heart.className = 'heart';
+            heart.innerHTML = '<i class="fas fa-heart"></i>';
+            heart.style.left = (Math.random() * 60 + 20) + 'vw';
+            heart.style.fontSize = (Math.random() * 15 + 10) + 'px';
+            heart.style.animationDuration = (Math.random() * 1.5 + 1) + 's';
+            document.getElementById('heart-container').appendChild(heart);
+            setTimeout(() => heart.remove(), 2500);
+        }
+    }
+
+    function showReactions(msgEl) {
+        if (msgEl.querySelector('.reaction-overlay')) return;
+        const overlay = document.createElement('div');
+        overlay.className = 'reaction-overlay';
+        ['❤️', '🔥', '😘', '😂', '😢'].forEach(r => {
+            const s = document.createElement('span');
+            s.innerText = r; s.className = 'cursor-pointer hover:scale-125 transition-transform';
+            s.onclick = (e) => {
+                e.stopPropagation();
+                const b = document.createElement('div');
+                b.className = 'reaction-badge absolute -bottom-3 right-0 bg-brand-purple border border-white/20 rounded-full px-1.5 py-0.5 text-[10px] shadow-lg';
+                b.innerText = r;
+                msgEl.appendChild(b);
+                overlay.remove();
+            };
+            overlay.appendChild(s);
+        });
+        msgEl.appendChild(overlay);
+        setTimeout(() => overlay?.remove(), 3000);
+    }
+</script>

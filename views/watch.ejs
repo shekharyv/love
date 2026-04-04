@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Together | Loveyapa Cinema 🎬</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], outfit: ['Outfit', 'sans-serif'] },
+                    colors: { 'brand-pink': '#FF007F', 'brand-purple': '#9D50BB', 'brand-dark': '#0f0f1a' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0f0f1a;
+            color: white;
+            overflow: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        #player-container {
+            aspect-ratio: 16 / 9;
+            width: 100%;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            background: black;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .chat-bubble {
+            max-width: 80%;
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .glow-pink {
+            box-shadow: 0 0 30px rgba(255, 0, 127, 0.2);
+        }
+    </style>
+</head>
+
+<body class="font-sans">
+
+    <!-- Top Bar -->
+    <header class="p-6 flex items-center justify-between z-50 relative">
+        <button onclick="window.history.back()"
+            class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="text-center">
+            <h1 class="text-lg font-outfit font-black italic tracking-wider">MARQUEE CINEMA <span
+                    class="text-brand-pink">🎬</span></h1>
+            <p id="room-status" class="text-[9px] font-black uppercase tracking-[0.3em] text-gray-400 mt-1">
+                Connecting...</p>
+        </div>
+        <div class="flex space-x-2">
+            <button
+                onclick="socket.emit('video-control', { action: 'load', videoId: player.getVideoData().video_id, time: player.getCurrentTime(), coupleId: COUPLE_ID })"
+                class="w-10 h-10 rounded-full bg-white/5 text-gray-400 flex items-center justify-center hover:bg-white/10"
+                title="Force Sync">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button onclick="openLinkModal()"
+                class="w-10 h-10 rounded-full bg-brand-pink/20 text-brand-pink flex items-center justify-center hover:bg-brand-pink/30">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="h-[calc(100vh-100px)] flex flex-col md:flex-row p-6 gap-6">
+        <div class="flex-1 flex flex-col">
+            <div id="player-container" class="glow-pink relative">
+                <div id="yt-player"></div>
+                <div id="sync-overlay"
+                    class="absolute top-4 right-4 bg-brand-pink/80 px-3 py-1 rounded-full text-[10px] font-bold text-white opacity-0 transition-opacity">
+                    <i class="fas fa-sync fa-spin mr-1"></i> SYNC
+                </div>
+            </div>
+
+            <div class="mt-6 glass-panel rounded-3xl p-4 flex items-center justify-between">
+                <div class="flex items-center space-x-6 px-4">
+                    <button id="main-play-btn" onclick="togglePlay()"
+                        class="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center text-white text-xl hover:bg-brand-pink hover:text-white transition-all shadow-xl">
+                        <i class="fas fa-play" id="play-icon"></i>
+                    </button>
+                    <button onclick="playerAction('seek')" class="text-gray-400 hover:text-white transition-all">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                </div>
+                <div id="video-info"
+                    class="text-[10px] font-black uppercase text-gray-500 tracking-widest hidden md:block">
+                    CINEMA: <span id="video-title" class="text-white">ENJOYING TOGETHER ❤️</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full md:w-80 flex flex-col overflow-hidden glass-panel rounded-[2rem]">
+            <div class="p-5 border-b border-white/5">
+                <span
+                    class="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center space-x-2">
+                    <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                    <span>Live Reactions</span>
+                </span>
+            </div>
+
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+                <div class="text-center py-10 opacity-30">
+                    <i class="fas fa-comment-dots text-3xl mb-2"></i>
+                    <p class="text-[10px] font-bold uppercase tracking-widest leading-relaxed">Start chatting!</p>
+                </div>
+            </div>
+
+            <div class="p-4 bg-white/5 border-t border-white/5">
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="chat-input" placeholder="Type a reaction..."
+                        class="flex-1 bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-xs focus:border-brand-pink outline-none">
+                    <button onclick="sendChat()"
+                        class="w-10 h-10 bg-brand-pink rounded-xl flex items-center justify-center text-white active:scale-95 transition-all">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="link-modal"
+        class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex items-center justify-center p-6">
+        <div class="glass-panel w-full max-w-sm p-8 rounded-[2.5rem] border-brand-pink/20">
+            <h3 class="text-xl font-outfit font-black italic mb-2">Choose Video 🍿</h3>
+            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-8">Paste YouTube Link</p>
+            <div class="space-y-4 mb-8">
+                <input type="text" id="yt-url-input" placeholder="https://..."
+                    class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-pink outline-none italic">
+                <button onclick="loadVideo()"
+                    class="w-full bg-brand-pink py-4 rounded-2xl font-black uppercase text-xs tracking-widest">Load
+                    Together �</button>
+            </div>
+            <button onclick="closeLinkModal()"
+                class="w-full text-[9px] font-black uppercase text-gray-600 hover:text-white">Cancel</button>
+        </div>
+    </div>
+
+    <!-- YouTube & App Script -->
+    <script>
+        const socket = io();
+        const USER_ID = "<%= user._id %>";
+        let PARTNER_ID = null;
+        let COUPLE_ID = null;
+        let player;
+        let isSyncing = false;
+        let playerReady = false;
+
+        window.onYouTubeIframeAPIReady = function () {
+            player = new YT.Player('yt-player', {
+                height: '100%', width: '100%', videoId: 'dQw4w9WgXcQ',
+                playerVars: { 'playsinline': 1, 'modestbranding': 1, 'controls': 1 },
+                events: {
+                    'onReady': () => { playerReady = true; console.log("[DEBUG] Player Ready ✅"); },
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        };
+
+        async function init() {
+            try {
+                const res = await fetch('/api/partner');
+                const p = await res.json();
+                PARTNER_ID = p.partnerId;
+                COUPLE_ID = [USER_ID, PARTNER_ID].sort().join('_');
+                if (PARTNER_ID) {
+                    console.log("[DEBUG] Joining Room:", COUPLE_ID);
+                    socket.emit('watch-join', { userId: USER_ID, partnerId: PARTNER_ID });
+                    document.getElementById('room-status').innerText = "VIBING WITH " + p.name.toUpperCase() + " ❤️";
+                    document.getElementById('room-status').classList.replace('text-gray-400', 'text-green-400');
+                }
+            } catch (e) {
+                console.error("[DEBUG] Init Failed:", e);
+            }
+        }
+        init();
+
+        function safeCall(fn) {
+            if (player && playerReady) fn();
+            else setTimeout(() => safeCall(fn), 500);
+        }
+
+        function onPlayerStateChange(event) {
+            const state = event.data;
+            const icon = document.getElementById('play-icon');
+            if (state === YT.PlayerState.PLAYING) {
+                icon.classList.remove('fa-play'); icon.classList.add('fa-pause');
+            } else {
+                icon.classList.add('fa-play'); icon.classList.remove('fa-pause');
+            }
+
+            if (isSyncing || !COUPLE_ID) return;
+            let action = (state === YT.PlayerState.PLAYING) ? 'play' : (state === YT.PlayerState.PAUSED ? 'pause' : null);
+            if (action) {
+                console.log("[DEBUG] Emitting:", action);
+                socket.emit('video-control', { action, time: player.getCurrentTime(), videoId: player.getVideoData().video_id, coupleId: COUPLE_ID });
+            }
+        }
+
+        function togglePlay() {
+            if (!playerReady) return;
+            const state = player.getPlayerState();
+            if (state === YT.PlayerState.PLAYING) player.pauseVideo();
+            else player.playVideo();
+        }
+
+        function playerAction(type) {
+            if (!COUPLE_ID || !playerReady) return;
+            if (type === 'seek') {
+                const newTime = player.getCurrentTime() + 10;
+                player.seekTo(newTime, true);
+                socket.emit('video-control', { action: 'seek', time: newTime, videoId: player.getVideoData().video_id, coupleId: COUPLE_ID });
+            }
+        }
+
+        socket.on('video-control', (data) => {
+            console.log("[DEBUG] Received Sync:", data.action, data.videoId);
+            if (isSyncing) return;
+            safeCall(() => {
+                isSyncing = true;
+                const currentVideo = player.getVideoData().video_id;
+                if (data.videoId && data.videoId !== currentVideo) {
+                    console.log("[DEBUG] Video Mismatch! Correcting...");
+                    player.loadVideoById(data.videoId, data.time || 0);
+                    showToast("Syncing Screen... 🎬");
+                }
+                if (data.action === 'play') {
+                    const diff = Math.abs(player.getCurrentTime() - data.time);
+                    if (diff > 1) player.seekTo(data.time, true);
+                    player.playVideo();
+                    showSyncBadge();
+                } else if (data.action === 'pause') {
+                    player.pauseVideo();
+                    showSyncBadge();
+                } else if (data.action === 'load') {
+                    player.loadVideoById(data.videoId, data.time || 0);
+                    if (data.playing) setTimeout(() => player.playVideo(), 1000);
+                    showToast("Cinema Session synced! 🍿");
+                } else if (data.action === 'seek') {
+                    player.seekTo(data.time, true);
+                    showSyncBadge();
+                } else if (data.action === 'heartbeat') {
+                    const diff = Math.abs(player.getCurrentTime() - data.time);
+                    if (diff > 3) player.seekTo(data.time, true);
+                }
+                setTimeout(() => { isSyncing = false; }, 1000);
+            });
+        });
+
+        socket.on('video-chat', (data) => { appendMessage(data.senderName, data.text, false); });
+
+        setInterval(() => {
+            if (!playerReady || !COUPLE_ID || isSyncing) return;
+            if (player.getPlayerState() === YT.PlayerState.PLAYING) {
+                socket.emit('video-control', { action: 'heartbeat', time: player.getCurrentTime(), videoId: player.getVideoData().video_id, coupleId: COUPLE_ID });
+            }
+        }, 5000);
+
+        function openLinkModal() { document.getElementById('link-modal').classList.remove('hidden'); }
+        function closeLinkModal() { document.getElementById('link-modal').classList.add('hidden'); }
+
+        function loadVideo() {
+            const urlInp = document.getElementById('yt-url-input');
+            const videoId = extractVideoID(urlInp.value.trim());
+            if (videoId) {
+                safeCall(() => {
+                    console.log("[DEBUG] Loading Video Locally:", videoId);
+                    player.loadVideoById(videoId);
+                    if (COUPLE_ID) socket.emit('video-control', { action: 'load', videoId, coupleId: COUPLE_ID });
+                    closeLinkModal();
+                    showToast("Syncing with partner... 🎬");
+                    urlInp.value = "";
+                });
+            } else { showToast("Invalid Link! 🎬"); }
+        }
+
+        function extractVideoID(url) {
+            const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            if (match && match[2].length == 11) return match[2];
+            if (url.length === 11 && !url.includes('/') && !url.includes('.')) return url;
+            return false;
+        }
+
+        function sendChat() {
+            const input = document.getElementById('chat-input');
+            if (!input.value.trim() || !COUPLE_ID) return;
+            socket.emit('video-chat', { text: input.value, senderName: "<%= user.name %>", coupleId: COUPLE_ID });
+            appendMessage("You", input.value, true); input.value = "";
+        }
+
+        function appendMessage(sender, text, isMe) {
+            const container = document.getElementById('chat-messages');
+            const placeholder = container.querySelector('.opacity-30');
+            if (placeholder) placeholder.remove();
+            const div = document.createElement('div');
+            div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-4 animate-popIn`;
+            div.innerHTML = `<span class="text-[7px] font-black uppercase text-gray-500 mb-1 px-2">${sender}</span><div class="chat-bubble px-4 py-2 rounded-2xl text-[11px] font-bold ${isMe ? 'bg-brand-pink text-white shadow-lg shadow-brand-pink/20' : 'bg-white/10 text-gray-200 border border-white/5'}">${text}</div>`;
+            container.appendChild(div); container.scrollTop = container.scrollHeight;
+        }
+
+        function showSyncBadge() { const badge = document.getElementById('sync-overlay'); if (badge) { badge.style.opacity = '1'; setTimeout(() => badge.style.opacity = '0', 2000); } }
+        function showToast(msg) { const toast = document.createElement('div'); toast.className = 'fixed top-24 left-1/2 -translate-x-1/2 bg-brand-pink text-white px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl z-[500] pointer-events-none'; toast.innerText = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+        document.getElementById('chat-input').onkeypress = (e) => { if (e.key === 'Enter') sendChat() };
+    </script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+</body>
+
+</html>
