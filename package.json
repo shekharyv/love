@@ -13,6 +13,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "agora-access-token": "^2.0.4",
     "connect-mongo": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.0",
