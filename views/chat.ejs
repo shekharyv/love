@@ -8,6 +8,18 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <!-- --- PWA MANIFEST & OFFLINE REGISTRATION --- -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ff007f">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(reg => {
+                    console.log('✅ PWA: Service Worker Registered! Offline Mode Active. 🕵️‍♂️🛡️');
+                }).catch(err => console.log('🛑 PWA: Registration Failed.', err));
+            });
+        }
+    </script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
         tailwind.config = {
@@ -138,16 +150,25 @@
         }
 
         #chat-container::-webkit-scrollbar {
-            width: 5px;
+            display: none;
         }
 
-        #chat-container::-webkit-scrollbar-track {
-            background: transparent;
+        #chat-container {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
 
-        #chat-container::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+        .bg-btn-gradient {
+            background: linear-gradient(135deg, #f02d66, #9333EA);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
     </style>
 </head>
@@ -158,28 +179,43 @@
     <div id="heart-container" class="fixed inset-0 overflow-hidden pointer-events-none z-0"></div>
 
     <!-- Top Chat Header -->
-    <header class="glass-header z-50 px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-            <a href="/home" class="p-2 hover:bg-white/5 rounded-full text-gray-400 transition-colors"><i
-                    class="fas fa-chevron-left text-xl"></i></a>
-            <div class="relative group cursor-pointer" onclick="vibrateDevice()">
-                <img src="/images/partner-avatar.png" alt="Partner"
-                    class="w-12 h-12 rounded-full border-2 border-brand-pink p-0.5">
-                <div id="online-indicator"
-                    class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0a0514]"></div>
+    <header class="glass-header z-50 px-4 py-3 flex flex-col space-y-1">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <a href="/home" class="p-2 hover:bg-white/5 rounded-full text-gray-400 transition-colors"><i
+                        class="fas fa-chevron-left text-xl"></i></a>
+                <div class="relative group cursor-pointer" onclick="vibrateDevice()">
+                    <img src="/images/partner-avatar.png" alt="Partner"
+                        class="w-12 h-12 rounded-full border-2 border-brand-pink p-0.5">
+                    <div id="online-indicator"
+                        class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0a0514]"></div>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm tracking-tight"><span id="header-partner-name">Partner</span> ❤️</h3>
+                    <p id="status-text" class="text-[10px] font-black text-green-400 uppercase tracking-widest">Online</p>
+                </div>
             </div>
-            <div>
-                <h3 class="font-bold text-sm tracking-tight"><span id="header-partner-name">Partner</span> ❤️</h3>
-                <p id="status-text" class="text-[10px] font-black text-green-400 uppercase tracking-widest">Online</p>
+            <div class="flex items-center space-x-2 text-gray-400">
+                <!-- --- GHOST MODE TOGGLE --- -->
+                <button id="ghost-toggle" onclick="toggleGhostMode()" 
+                    class="p-2.5 rounded-full transition-all group relative <%= user.ghostMode ? 'text-brand-pink bg-brand-pink/10 animate-pulse' : 'hover:bg-white/5 hover:text-white' %>"
+                    title="Toggle Invisible Mode">
+                    <i class="fas fa-user-secret text-lg"></i>
+                    <span id="ghost-status-dot" class="absolute top-1 right-1 w-2 h-2 rounded-full <%= user.ghostMode ? 'bg-brand-pink shadow-[0_0_8px_#ff007f]' : 'bg-gray-600' %>"></span>
+                </button>
+                
+                <button class="p-2.5 hover:bg-white/5 rounded-full hover:text-white transition-all"><i
+                        class="fas fa-phone-alt"></i></button>
+                <button class="p-2.5 hover:bg-white/5 rounded-full hover:text-white transition-all"><i
+                        class="fas fa-video"></i></button>
+                <button class="p-2.5 hover:bg-white/5 rounded-full hover:text-white transition-all"><i
+                        class="fas fa-ellipsis-v"></i></button>
             </div>
         </div>
-        <div class="flex items-center space-x-2 text-gray-400">
-            <button class="p-2.5 hover:bg-white/5 rounded-full hover:text-white transition-all"><i
-                    class="fas fa-phone-alt"></i></button>
-            <button class="p-2.5 hover:bg-white/5 rounded-full hover:text-white transition-all"><i
-                    class="fas fa-video"></i></button>
-            <button class="p-2.5 hover:bg-white/5 rounded-full hover:text-white transition-all"><i
-                    class="fas fa-ellipsis-v"></i></button>
+        <!-- --- OFFLINE SYNC NOTIFICATION --- -->
+        <div id="offline-bar" class="hidden bg-orange-600/20 py-1.5 px-4 rounded-xl border border-orange-500/20 flex items-center justify-center space-x-2 animate-pulse overflow-hidden">
+             <i class="fas fa-cloud-slash text-[10px] text-orange-400"></i>
+             <span class="text-[8px] font-black text-white/80 uppercase tracking-[0.2em]">Sync Active: Messages will send when online 🕒</span>
         </div>
     </header>
 
@@ -246,37 +282,34 @@
         <!-- Messages will be injected here -->
 
         <!-- Welcome Card -->
-        <div class="mx-auto w-full max-w-xs text-center space-y-4 mb-4">
-            <div class="glass-input p-6 rounded-3xl border-brand-pink/20">
-                <div
-                    class="w-10 h-10 bg-brand-pink/20 rounded-full mx-auto flex items-center justify-center text-brand-pink mb-2">
+        <div class="mx-auto w-full max-w-[90%] md:max-w-xs text-center space-y-4 mb-4">
+            <div class="glass-input p-5 md:p-6 rounded-3xl border-brand-pink/20">
+                <div class="w-10 h-10 bg-brand-pink/20 rounded-full mx-auto flex items-center justify-center text-brand-pink mb-2">
                     <i class="fas fa-lock text-sm"></i>
                 </div>
                 <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
-                    This chat is just for the two of you. Your bond is private & secure. ❤️
+                    Private & Secure Bond ❤️
                 </p>
             </div>
         </div>
 
         <!-- Quiz Integration Card -->
-        <div class="mx-auto w-full max-w-sm reveal-card">
-            <div class="glass-input p-6 border-brand-pink/40 bg-brand-pink/5 relative overflow-hidden group">
-                <div
-                    class="absolute -top-10 -right-10 w-24 h-24 bg-brand-pink/10 blur-2xl group-hover:bg-brand-pink/20 transition-all">
-                </div>
-                <div class="flex items-center space-x-3 mb-4">
-                    <div
-                        class="w-10 h-10 bg-brand-pink/20 rounded-xl flex items-center justify-center text-brand-pink border border-brand-pink/30">
+        <div class="mx-auto w-full max-w-[95%] md:max-w-sm">
+            <div class="glass-input p-5 md:p-6 border-brand-pink/40 bg-brand-pink/5 rounded-[2rem] relative overflow-hidden group">
+                <div class="absolute -top-10 -right-10 w-24 h-24 bg-brand-pink/10 blur-2xl"></div>
+                <div class="flex items-center space-x-4 mb-5">
+                    <div class="w-10 h-10 flex-shrink-0 bg-brand-pink/20 rounded-xl flex items-center justify-center text-brand-pink border border-brand-pink/30">
                         <i class="fas fa-brain"></i>
                     </div>
                     <div>
-                        <h4 class="font-bold text-sm tracking-tight text-white uppercase tracking-widest">Tonight’s quiz
-                            is ready ❤️</h4>
+                        <h4 class="font-black text-xs md:text-sm text-white uppercase tracking-wider">Tonight’s Quiz ❤️</h4>
+                        <p class="text-[9px] text-gray-500 font-bold uppercase">Ready to Play</p>
                     </div>
                 </div>
-                <button
-                    class="w-full bg-brand-pink py-3 rounded-2xl font-black text-xs hover:shadow-[0_0_20px_rgba(225,29,72,0.4)] transition-all uppercase tracking-widest">Start
-                    Game</button>
+                <button onclick="startQuiz()"
+                    class="w-full bg-brand-pink py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-brand-pink/20 transition-all hover:scale-[1.02] active:scale-95">
+                    Start Game 🧠
+                </button>
             </div>
         </div>
 
@@ -317,38 +350,38 @@
         <!-- Input Outer Shell -->
         <div class="max-w-4xl mx-auto space-y-4">
 
-            <!-- Quick Love Actions -->
-            <div class="flex justify-center space-x-3">
-                <button onclick="sendQuickLove('❤️ MISS YOU')"
-                    class="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase text-brand-pink hover:bg-brand-pink hover:text-white transition-all">❤️
-                    Miss you</button>
-                <button onclick="sendQuickLove('😘 KISS')"
-                    class="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase text-brand-pink hover:bg-brand-pink hover:text-white transition-all">😘
-                    Kiss</button>
-                <button onclick="sendQuickLove('🤗 HUG')"
-                    class="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase text-brand-pink hover:bg-brand-pink hover:text-white transition-all">🤗
-                    Hug</button>
-            </div>
+        <!-- Quick Love Actions -->
+        <div class="flex justify-center space-x-2 md:space-x-3 overflow-x-auto no-scrollbar py-2">
+            <button onclick="sendQuickLove('❤️ MISS YOU')"
+                class="flex-shrink-0 bg-white/5 border border-white/10 px-3 md:px-5 py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase text-brand-pink hover:bg-brand-pink hover:text-white transition-all">❤️ Miss you</button>
+            <button onclick="sendQuickLove('😘 KISS')"
+                class="flex-shrink-0 bg-white/5 border border-white/10 px-3 md:px-5 py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase text-brand-pink hover:bg-brand-pink hover:text-white transition-all">😘 Kiss</button>
+            <button onclick="sendQuickLove('🤗 HUG')"
+                class="flex-shrink-0 bg-white/5 border border-white/10 px-3 md:px-5 py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase text-brand-pink hover:bg-brand-pink hover:text-white transition-all">🤗 Hug</button>
+        </div>
 
             <!-- Real Input Area -->
-            <div class="flex items-center space-x-3 glass-input p-2 rounded-full relative">
-                <button class="p-3 text-gray-400 hover:text-white transition-colors"><i
-                        class="fas fa-plus"></i></button>
-                <input type="text" id="chatInput" placeholder="Type a romantic message..."
-                    class="bg-transparent flex-grow outline-none text-sm font-medium py-3 px-2">
+            <div class="flex items-center glass-input p-1.5 rounded-full relative shadow-2xl">
+                <button class="w-10 h-10 flex-shrink-0 text-gray-400 hover:text-brand-pink transition-colors flex items-center justify-center">
+                    <i class="fas fa-plus text-sm"></i>
+                </button>
+                
+                <input type="text" id="chatInput" placeholder="Type a message..."
+                    class="bg-transparent flex-grow outline-none text-sm font-medium py-2 px-1 min-w-0">
 
-                <div class="flex items-center space-x-1 border-l border-white/10 pl-2">
-                    <button onclick="openCamera()" class="p-3 text-gray-400 hover:text-white transition-colors"
-                        title="Send Snap"><i class="fas fa-camera"></i></button>
+                <div class="flex items-center border-l border-white/10 px-1 space-x-0.5">
+                    <button onclick="openCamera()" class="w-10 h-10 flex-shrink-0 text-gray-400 hover:text-white transition-colors flex items-center justify-center"
+                        title="Send Snap"><i class="fas fa-camera text-sm"></i></button>
                     <button id="mic-btn" onmousedown="startRecording()" onmouseup="stopRecording()"
                         ontouchstart="startRecording()" ontouchend="stopRecording()"
-                        class="p-3 text-gray-400 hover:text-white transition-colors" title="Voice Note"><i
-                            class="fas fa-microphone"></i></button>
+                        class="w-10 h-10 flex-shrink-0 text-gray-400 hover:text-white transition-colors flex items-center justify-center" title="Voice Note">
+                        <i class="fas fa-microphone text-sm"></i>
+                    </button>
                 </div>
 
                 <button id="send-btn" onclick="sendMessage()"
-                    class="bg-brand-pink w-12 h-12 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(225,29,72,0.4)] hover:shadow-[0_0_25px_rgba(225,29,72,0.6)] transform hover:scale-105 active:scale-90 transition-all">
-                    <i class="fas fa-paper-plane"></i>
+                    class="bg-btn-gradient w-11 h-11 flex-shrink-0 rounded-full flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all ml-1">
+                    <i class="fas fa-paper-plane text-sm"></i>
                 </button>
             </div>
         </div>
@@ -409,7 +442,38 @@
     </div>
 
     <script>
-        const socket = io();
+        function createNoopSocket() {
+            return {
+                on: () => { },
+                emit: () => { },
+                connected: false
+            };
+        }
+
+        function createSocketClient() {
+            if (typeof io !== 'function') return createNoopSocket();
+            try {
+                const s = io({
+                    path: '/socket.io',
+                    transports: ['websocket'],
+                    upgrade: false,
+                    withCredentials: true,
+                    reconnection: true,
+                    reconnectionAttempts: 5,
+                    timeout: 10000
+                });
+
+                s.on('connect_error', (err) => {
+                    console.warn('Realtime temporarily unavailable:', err.message);
+                });
+                return s;
+            } catch (err) {
+                console.warn('Socket init failed:', err.message);
+                return createNoopSocket();
+            }
+        }
+
+        const socket = createSocketClient();
         const chatContainer = document.getElementById('chat-container');
         const msgInput = document.getElementById('chatInput');
         const sendBtn = document.getElementById('send-btn');
@@ -530,27 +594,103 @@
             }, 3000);
         });
 
+        async function toggleGhostMode() {
+            try {
+                const res = await fetch('/api/toggle-ghost', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    const btn = document.getElementById('ghost-toggle');
+                    const dot = document.getElementById('ghost-status-dot');
+                    
+                    if (data.ghostMode) {
+                        btn.classList.add('text-brand-pink', 'bg-brand-pink/10', 'animate-pulse');
+                        btn.classList.remove('hover:bg-white/5', 'hover:text-white');
+                        dot.classList.add('bg-brand-pink', 'shadow-[0_0_8px_#ff007f]');
+                        dot.classList.remove('bg-gray-600');
+                        alert("Ghost Mode Active: You are now Invisible! 🕵️‍♂️🌑");
+                    } else {
+                        btn.classList.remove('text-brand-pink', 'bg-brand-pink/10', 'animate-pulse');
+                        btn.classList.add('hover:bg-white/5', 'hover:text-white');
+                        dot.classList.remove('bg-brand-pink', 'shadow-[0_0_8px_#ff007f]');
+                        dot.classList.add('bg-gray-600');
+                        alert("Stealth Deactivated: Back to Normal! ☀️");
+                    }
+                }
+            } catch (e) { console.error("Toggle failed", e); }
+        }
+
+        // --- OFFLINE SMART SYNC ENGINE ---
+        let offlineQueue = JSON.parse(localStorage.getItem('offline_msgs') || '[]');
+
+        window.addEventListener('online', () => {
+            document.getElementById('offline-bar').classList.add('hidden');
+            processOfflineQueue();
+        });
+        window.addEventListener('offline', () => {
+            document.getElementById('offline-bar').classList.remove('hidden');
+        });
+
+        async function processOfflineQueue() {
+            if (offlineQueue.length === 0) return;
+            console.log(`📡 SYNCING: Sending ${offlineQueue.length} offline messages...`);
+            
+            for (const msg of offlineQueue) {
+                try {
+                    await fetch("/send-message", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(msg)
+                    });
+                } catch (e) { break; } // Stop if still offline
+            }
+            offlineQueue = [];
+            localStorage.setItem('offline_msgs', '[]');
+            loadMessages();
+        }
+
         async function sendMessage() {
             const input = document.getElementById("chatInput");
             const text = input.value.trim();
             if (!text) return;
 
+            const msgData = { senderId: USER_ID, receiverId: PARTNER_ID, text: text };
+            msgInput.value = '';
             socket.emit('typing', { coupleId: COUPLE_ID, isTyping: false });
 
+            // --- OFFLINE LOCAL ECHO ---
+            if (!navigator.onLine) {
+                offlineQueue.push(msgData);
+                localStorage.setItem('offline_msgs', JSON.stringify(offlineQueue));
+                
+                // Render with a "Waiting 🕒" icon locally
+                renderMessage({
+                    ...msgData,
+                    type: 'text',
+                    time: 'Offline',
+                    status: 'waiting',
+                    timestamp: new Date()
+                });
+                scrollToBottom();
+                return;
+            }
+
             try {
-                const res = await fetch("/send-message", {
+                await fetch("/send-message", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ senderId: USER_ID, receiverId: PARTNER_ID, text: text })
+                    body: JSON.stringify(msgData)
                 });
-                msgInput.value = '';
                 createHeartEffect();
                 scrollToBottom();
-            } catch (err) { console.error(err); }
+            } catch (err) { 
+                console.error("Fetch failed, queueing offline...", err);
+                offlineQueue.push(msgData);
+                localStorage.setItem('offline_msgs', JSON.stringify(offlineQueue));
+            }
         }
 
         async function loadMessages() {
-            if (!PARTNER_ID) return;
+            if (!PARTNER_ID || !navigator.onLine) return; // Skip if offline
             try {
                 const res = await fetch(`/messages/${USER_ID}/${PARTNER_ID}`);
                 const data = await res.json();
@@ -699,6 +839,7 @@
         function getStatusIcon(status) {
             if (status === 'seen') return '<i class="fas fa-check-double text-yellow-400"></i>';
             if (status === 'delivered') return '<i class="fas fa-check-double text-white/30"></i>';
+            if (status === 'waiting') return '<i class="fas fa-clock text-white/30 animate-pulse"></i>';
             return '<i class="fas fa-check text-white/30"></i>';
         }
 

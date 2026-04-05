@@ -133,7 +133,7 @@
         </div>
         <div class="flex items-center space-x-4 bg-white/5 px-6 py-2 rounded-2xl border border-white/10">
             <span class="text-xl">🔥</span>
-            <span class="text-sm font-black text-gray-200">15 Days Streak</span>
+            <span class="text-sm font-black text-gray-200"><%= user.streak %> Days Streak</span>
         </div>
     </header>
 
@@ -162,7 +162,7 @@
                             </defs>
                         </svg>
                         <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <span class="text-4xl font-black">77<span class="text-xl text-pink-500">%</span></span>
+                            <span id="u-score-val" class="text-4xl font-black">0<span class="text-xl text-pink-500">%</span></span>
                             <span class="text-[10px] text-gray-400 font-black uppercase tracking-widest">You</span>
                         </div>
                     </div>
@@ -182,7 +182,7 @@
                                 fill="none" stroke-dasharray="440" stroke-dashoffset="440" class="progress-circle" />
                         </svg>
                         <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <span class="text-4xl font-black">80<span class="text-xl text-cyan-400">%</span></span>
+                            <span id="p-score-val" class="text-4xl font-black">0<span class="text-xl text-cyan-400">%</span></span>
                             <span class="text-[10px] text-gray-400 font-black uppercase tracking-widest">Partner</span>
                         </div>
                     </div>
@@ -213,10 +213,10 @@
                     <line x1="0" y1="50" x2="1000" y2="50" stroke="white" stroke-opacity="0.05" />
 
                     <!-- Line Your Data -->
-                    <path class="chart-line" d="M0,200 L160,180 L320,220 L480,150 L640,110 L800,160 L960,130"
+                    <path id="v-user-path" class="chart-line" d="M0,250 L160,250 L320,250 L480,250 L640,250 L800,250 L960,250"
                         stroke="#E11D48" />
                     <!-- Line Partner Data -->
-                    <path class="chart-line" d="M0,150 L160,140 L320,130 L480,120 L640,140 L800,100 L960,90"
+                    <path id="v-partner-path" class="chart-line" d="M0,250 L160,250 L320,250 L480,250 L640,250 L800,250 L960,250"
                         stroke="#06b6d4" stroke-opacity="0.6" style="animation-delay: 0.5s" />
                 </svg>
             </div>
@@ -519,6 +519,24 @@
                     accTag.innerText = "Close game! 🧠"; accTag.className = "mt-4 text-[10px] text-gray-400 font-bold";
                 }
 
+                // Update Circles & Scores
+                const uS = data.userScore || 0;
+                const pS = data.partnerScore || 0;
+                document.getElementById('u-score-val').innerHTML = `${uS}<span class="text-xl text-pink-500">%</span>`;
+                document.getElementById('p-score-val').innerHTML = `${pS}<span class="text-xl text-cyan-400">%</span>`;
+                
+                const uCircle = document.getElementById('user-circle');
+                const pCircle = document.getElementById('partner-circle');
+                if (uCircle) uCircle.style.strokeDashoffset = 440 - (440 * (uS / 100));
+                if (pCircle) pCircle.style.strokeDashoffset = 440 - (440 * (pS / 100));
+
+                // Update Chart Paths
+                const uWeek = data.weeklyUser || [250,250,250,250,250,250,250];
+                const pWeek = data.weeklyPartner || [250,250,250,250,250,250,250];
+                
+                const generatePath = (pts) => `M0,${pts[0]} L160,${pts[1]} L320,${pts[2]} L480,${pts[3]} L640,${pts[4]} L800,${pts[5]} L960,${pts[6]}`;
+                document.getElementById('v-user-path').setAttribute('d', generatePath(uWeek));
+                document.getElementById('v-partner-path').setAttribute('d', generatePath(pWeek));
             } catch (e) { console.error("Failed to load insights", e); }
         }
 

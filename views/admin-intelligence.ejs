@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligence Report | LoveSync Authority 🛡️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --admin-red: #ff3333; --admin-bg: #030305; --admin-card: rgba(15, 15, 20, 0.7); }
+        .glass { background: var(--admin-card); backdrop-filter: blur(25px); border: 1px solid rgba(255, 50, 50, 0.15); box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .glass-dark { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        body { 
+            background: radial-gradient(circle at 0% 0%, #0a0514 0%, #030305 100%); 
+            background-color: #030305;
+            color: #ffffff; 
+            font-family: 'Outfit', sans-serif; 
+            min-height: 100vh; 
+            overflow-x: hidden; 
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,50,50,0.3); border-radius: 10px; }
+        .animate-scan { position: relative; overflow: hidden; }
+        .animate-scan::after { 
+            content: ''; position: absolute; top: -100%; left: 0; width: 100%; height: 60%; 
+            background: linear-gradient(to bottom, transparent, rgba(255, 51, 51, 0.15), transparent); 
+            animation: scan 4s infinite linear; 
+        }
+        @keyframes scan { 0% { top: -100%; } 100% { top: 200%; } }
+        .cyber-grid { 
+            background-image: 
+                linear-gradient(rgba(255, 51, 51, 0.03) 1.5px, transparent 1.5px),
+                linear-gradient(90deg, rgba(255, 51, 51, 0.03) 1.5px, transparent 1.5px);
+            background-size: 40px 40px;
+        }
+        .neon-text { text-shadow: 0 0 10px rgba(255, 51, 51, 0.3); }
+        .tab-btn.active { background: rgba(255, 51, 51, 0.15); border-color: rgba(255, 51, 51, 0.5); color: #ff3333; }
+    </style>
+</head>
+<body class="cyber-grid p-4 md:p-8">
+    <div class="max-w-7xl mx-auto space-y-8 min-h-[90vh] flex flex-col">
+        <!-- Dashboard Header -->
+        <header class="flex flex-col md:flex-row items-center justify-between glass p-8 rounded-[3rem] animate-scan border-red-500/10">
+            <div class="flex items-center space-x-6">
+                <div class="w-24 h-24 bg-gradient-to-br from-red-600 to-pink-700 rounded-[2rem] flex items-center justify-center text-4xl font-black shadow-2xl shadow-red-600/30 border border-white/10">
+                    <%= user.name ? user.name[0].toUpperCase() : '?' %>
+                </div>
+                <div>
+                    <h1 class="text-5xl font-black italic tracking-tighter uppercase leading-none bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500"><%= user.name || 'Anonymous' %></h1>
+                    <div class="flex items-center gap-4 mt-3">
+                        <p class="text-[10px] text-red-500 font-black uppercase tracking-[0.3em] flex items-center gap-2">
+                            <i class="fas fa-fingerprint animate-pulse"></i> Forensic Intelligence Active
+                        </p>
+                        <span class="px-3 py-1 glass rounded-full text-[8px] font-black uppercase text-gray-400">ID: <%= user._id %></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-6 mt-6 md:mt-0">
+                <div class="text-right border-r border-white/5 pr-8">
+                    <p class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Session Health</p>
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <p class="text-xs font-black text-white uppercase tracking-tighter">Live Monitor</p>
+                    </div>
+                </div>
+                <button onclick="window.location.href='/admin'" class="glass px-10 py-5 rounded-2xl hover:bg-white/10 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-3 border-red-500/20 active:scale-95">
+                    <i class="fas fa-undo"></i> Terminate View
+                </button>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1 overflow-hidden">
+            <!-- Left Sidebar: Technical DNA -->
+            <div class="lg:col-span-4 space-y-6 flex flex-col overflow-y-auto custom-scrollbar pr-2">
+                <!-- DNA Statistics -->
+                <div class="glass p-8 rounded-[3rem] space-y-8 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-8 opacity-10">
+                        <i class="fas fa-dna text-6xl text-red-500"></i>
+                    </div>
+                    
+                    <h3 class="text-xs font-black uppercase text-gray-400 tracking-widest border-b border-white/5 pb-4">Account Metadata</h3>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-5 glass-dark rounded-3xl border border-white/5">
+                            <p class="text-[9px] text-red-500 font-black uppercase mb-1">Love EXP</p>
+                            <p class="text-xl font-black tracking-tighter"><%= user.exp || 0 %></p>
+                        </div>
+                        <div class="p-5 glass-dark rounded-3xl border border-white/5">
+                            <p class="text-[9px] text-pink-500 font-black uppercase mb-1">Streak</p>
+                            <p class="text-xl font-black tracking-tighter">🔥 <%= user.streak || 0 %></p>
+                        </div>
+                    </div>
+
+                    <div class="p-6 glass-dark rounded-3xl border border-white/5 flex items-center justify-between">
+                        <div>
+                            <p class="text-[9px] text-purple-500 font-black uppercase mb-1">Coupled With</p>
+                            <p class="text-sm font-black text-white"><%= user.partnerName || 'No Active Partner' %></p>
+                        </div>
+                        <i class="fas <%= user.partnerId ? 'fa-link text-green-500' : 'fa-link-slash text-red-500' %> text-xl"></i>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-[9px] font-black text-gray-500 uppercase tracking-widest px-1">
+                            <span>Synchro Ratio</span>
+                            <span class="text-red-500"><%= Math.min(40 + (user.streak || 0)*2, 98) %>%</span>
+                        </div>
+                        <div class="w-full h-3 bg-white/5 rounded-full overflow-hidden p-0.5">
+                            <div class="h-full bg-gradient-to-r from-red-600 via-pink-500 to-red-600 rounded-full transition-all duration-1000 shadow-lg shadow-red-500/20" style="width: <%= Math.min(40 + (user.streak || 0)*2, 98) %>%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Forensic Activity Timeline -->
+                <div class="glass p-8 rounded-[3rem] flex-1 min-h-[400px]">
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="text-xs font-black uppercase text-gray-400 tracking-widest">Neural Activity Log</h3>
+                        <span class="text-[8px] font-black px-3 py-1 bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/20">REAL-TIME</span>
+                    </div>
+                    
+                    <div class="space-y-6 relative ml-2 border-l border-white/10 pl-6 pb-2">
+                        <% if(activities && activities.length > 0) { %>
+                            <% activities.forEach(a => { %>
+                                <div class="relative">
+                                    <div class="absolute -left-[31px] top-1 w-2.5 h-2.5 rounded-full bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.5)]"></div>
+                                    <div class="flex justify-between items-start mb-1">
+                                        <p class="text-[10px] font-black uppercase tracking-tighter <%= a.type === 'message' ? 'text-blue-400' : 'text-purple-400' %>"><%= a.type %></p>
+                                        <span class="text-[8px] text-gray-500 font-black"><%= new Date(a.timestamp).toLocaleTimeString() %></span>
+                                    </div>
+                                    <p class="text-[11px] font-medium text-gray-300 leading-relaxed italic">"<%= a.content %>"</p>
+                                </div>
+                            <% }) %>
+                        <% } else { %>
+                            <div class="text-center py-20 opacity-20">
+                                <i class="fas fa-terminal text-4xl mb-4"></i>
+                                <p class="text-[10px] font-black uppercase italic">Scanning: No packets found</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Content: Decrypted Communications -->
+            <div class="lg:col-span-8 glass rounded-[3rem] p-0 flex flex-col overflow-hidden">
+                <nav class="flex border-b border-white/5 p-6 space-x-6 bg-white/5">
+                    <button onclick="switchTab('comms')" class="tab-btn px-10 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all glass-dark border-red-500/40 text-red-500">
+                        <i class="fas fa-comment-dots mr-2"></i> Decrypted Chats
+                    </button>
+                    <button onclick="switchTab('visuals')" class="tab-btn px-10 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all glass-dark border-white/5 text-gray-500 hover:text-white">
+                        <i class="fas fa-eye mr-2"></i> Private Media
+                    </button>
+                </nav>
+
+                <div id="content-container" class="flex-1 overflow-y-auto p-10 custom-scrollbar cyber-grid">
+                    <!-- Chats Timeline -->
+                    <div id="tab-comms" class="space-y-8 animate-in fade-in duration-500">
+                        <% if(messages && messages.length > 0) { %>
+                            <% messages.forEach(m => { %>
+                                <% const isFromUser = m.senderId === user._id.toString(); %>
+                                <div class="flex <%= isFromUser ? 'justify-end' : 'justify-start' %> group">
+                                    <div class="relative max-w-[80%] min-w-[200px]">
+                                        <div class="absolute -top-6 <%= isFromUser ? 'right-0' : 'left-0' %> text-[8px] font-black uppercase text-gray-500 tracking-widest">
+                                            <%= isFromUser ? 'OUTGOING PACKET' : ('INCOMING FROM ' + (user.partnerName || 'PARTNER').toUpperCase()) %>
+                                        </div>
+                                        <div class="<%= isFromUser ? 'bg-gradient-to-br from-red-600 to-red-800 rounded-t-[2rem] rounded-bl-[2rem]' : 'glass-dark rounded-t-[2rem] rounded-br-[2rem]' %> p-6 border border-white/5 shadow-2xl">
+                                            <% if (m.type === 'image') { %>
+                                                <div class="relative overflow-hidden rounded-2xl group/img">
+                                                    <img src="<%= m.text %>" class="w-full max-h-96 object-cover shadow-2xl transition-transform duration-500 group-hover/img:scale-105">
+                                                    <div class="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-2xl"></div>
+                                                </div>
+                                            <% } else if (m.type === 'audio') { %>
+                                                <div class="flex items-center gap-4 bg-black/40 p-4 rounded-2xl border border-white/5">
+                                                    <div class="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-xs">
+                                                        <i class="fas fa-play"></i>
+                                                    </div>
+                                                    <div class="flex-1 space-y-1">
+                                                        <div class="h-1 bg-white/10 rounded-full w-full"></div>
+                                                        <div class="h-1 bg-white/10 rounded-full w-2/3"></div>
+                                                    </div>
+                                                    <span class="text-[9px] font-black">VOICE_INTEL.RAW</span>
+                                                </div>
+                                            <% } else { %>
+                                                <p class="text-sm font-semibold leading-relaxed tracking-tight"><%= m.text %></p>
+                                            <% } %>
+                                            
+                                            <div class="flex items-center justify-between mt-4 border-t border-white/5 pt-3">
+                                                <span class="text-[8px] font-black text-white/40 uppercase"><%= m.time %></span>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-[7px] font-black text-red-400 uppercase tracking-widest"><%= m.status %></span>
+                                                    <i class="fas fa-shield-halved text-[9px] <%= m.status === 'seen' ? 'text-blue-500' : 'text-gray-600' %>"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        <% } else { %>
+                            <div class="flex flex-col items-center justify-center py-40 opacity-20">
+                                <i class="fas fa-mask text-7xl mb-6"></i>
+                                <div class="text-center">
+                                    <h4 class="text-2xl font-black uppercase tracking-tighter">Cipher Active</h4>
+                                    <p class="text-[10px] font-black uppercase mt-2 tracking-[0.4em]">No unencrypted packets detected on this node</p>
+                                </div>
+                            </div>
+                        <% } %>
+                    </div>
+
+                    <!-- Media Grid -->
+                    <div id="tab-visuals" class="hidden grid grid-cols-2 md:grid-cols-3 gap-8">
+                        <% const vaults = messages.filter(m => m.type === 'image'); %>
+                        <% if(vaults.length > 0) { %>
+                            <% vaults.forEach(img => { %>
+                                <div class="aspect-square glass rounded-[2.5rem] overflow-hidden group relative border border-white/5 hover:border-red-500/50 transition-all p-3 cursor-crosshair">
+                                    <img src="<%= img.text %>" class="w-full h-full object-cover rounded-[2rem] transition-all duration-1000 group-hover:scale-110 group-hover:rotate-1">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                                        <p class="text-[9px] font-black text-red-400 uppercase tracking-widest mb-1">Captured Node</p>
+                                        <p class="text-[11px] font-black text-white"><%= img.time %></p>
+                                    </div>
+                                    <div class="absolute top-6 right-6 w-8 h-8 glass rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                                        <i class="fas fa-expand text-[10px]"></i>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        <% } else { %>
+                            <div class="col-span-full flex flex-col items-center justify-center py-40 opacity-10">
+                                <i class="fas fa-camera-slash text-8xl mb-6"></i>
+                                <p class="text-xl font-black uppercase italic tracking-[0.5em]">Vault Encrypted</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="p-8 glass rounded-full flex flex-col md:flex-row items-center justify-between border-red-500/5">
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></div>
+                    <span class="text-[8px] font-black text-gray-500 uppercase tracking-[0.3em]">Encryption-V4.2</span>
+                </div>
+                <span class="text-[8px] font-black text-gray-500 uppercase tracking-[0.3em]">Authority Access Only</span>
+            </div>
+            <p class="text-[8px] font-black text-gray-600 uppercase tracking-[0.5em] mt-4 md:mt-0">© 2026 LOVEYAPA SECURITY PROTOCOLS</p>
+        </footer>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            document.getElementById('tab-comms').classList.add('hidden');
+            document.getElementById('tab-visuals').classList.add('hidden');
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-red-500/40', 'text-red-500');
+                btn.classList.add('border-white/5', 'text-gray-500');
+            });
+            event.currentTarget.classList.add('border-red-500/40', 'text-red-500');
+            event.currentTarget.classList.remove('border-white/5', 'text-gray-500');
+        }
+        
+        // Auto-scroll to bottom of chats on load
+        window.onload = () => {
+            const container = document.getElementById('content-container');
+            container.scrollTop = container.scrollHeight;
+        };
+    </script>
+</body>
+</html>
