@@ -1,5 +1,6 @@
 const Groq = require('groq-sdk');
 require('dotenv').config();
+const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
 const dns = require('dns');
 
 // --- FORCE GOOGLE DNS FOR ATLAS BYPASS ---
@@ -809,6 +810,38 @@ app.post('/api/toggle-ghost', checkAuth, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// --- AGORA TOKEN GENERATOR ---
+app.get('/api/agora-token', checkAuth, (req, res) => {
+    const appId = process.env.AGORA_APP_ID;
+    const appCertificate = process.env.AGORA_APP_CERTIFICATE;
+    const channelName = req.query.channelName;
+    const uid = req.query.uid || 0;
+    const role = RtcRole.PUBLISHER;
+    const expirationTimeInSeconds = 3600;
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
+
+    if (!channelName) {
+        return res.status(400).json({ error: 'Channel name is required 🛡️' });
+    }
+
+    if (!appId || !appCertificate || appCertificate === 'PASTE_YOUR_APP_CERTIFICATE_HERE') {
+        console.warn("⚠️ AGORA SECURITY: Missing App Certificate. Using Test Mode (App ID only). 🛡️");
+        // Returning dummy success if cert missing for dev, or fail
+    }
+
+    try {
+        const token = RtcTokenBuilder.buildTokenWithUid(
+            appId, appCertificate, channelName, uid, role, privilegeExpiredTs
+        );
+        console.log(`📡 TOKEN ISSUED: Channel [${channelName}] | UID [${uid}]`);
+        return res.json({ token, appId });
+    } catch (e) {
+        console.error("TOKEN ERROR:", e);
+        return res.status(500).json({ error: 'Token generation failed' });
+    }
+});
+
 app.get('/api/love-score', checkAuth, async (req, res) => {
     const user = res.locals.user;
     const count = await Activity.countDocuments({ userId: user._id });
@@ -1216,6 +1249,31 @@ app.get('/api/quiz-status', checkAuth, async (req, res) => {
 // --- SOCKET.IO LOGIC ---
 const activeCinemas = new Map(); // Global State
 io.on('connection', async (socket) => {
+    // --- AGORA CALL SIGNALING ---
+    socket.on('call-user', (data) => {
+        socket.to(data.targetId).emit('incoming-call', {
+            from: socket.id,
+            callerName: data.callerName,
+            callType: data.callType,
+            channelName: data.channelName
+        });
+    });
+
+    socket.on('accept-call', (data) => {
+        socket.to(data.to).emit('call-accepted', {
+            channelName: data.channelName,
+            callType: data.callType
+        });
+    });
+
+    socket.on('reject-call', (data) => {
+        socket.to(data.to).emit('call-rejected');
+    });
+
+    socket.on('end-call', (data) => {
+        socket.to(data.to).emit('end-call-signal');
+    });
+
     socket.on('join', async (data) => {
         const { userId, partnerId } = data;
         const coupleId = [userId, partnerId].sort().join('_');

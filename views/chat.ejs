@@ -8,7 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <!-- --- PWA MANIFEST & OFFLINE REGISTRATION --- -->
+    <!-- --- AGORA & PWA REGISTRATION --- -->
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.2.js"></script>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#ff007f">
     <script>
@@ -204,10 +205,10 @@
                     <span id="ghost-status-dot" class="absolute top-1 right-1 w-2 h-2 rounded-full <%= user.ghostMode ? 'bg-brand-pink shadow-[0_0_8px_#ff007f]' : 'bg-gray-600' %>"></span>
                 </button>
                 
-                <button class="p-2.5 hover:bg-white/5 rounded-full hover:text-white transition-all"><i
-                        class="fas fa-phone-alt"></i></button>
-                <button class="p-2.5 hover:bg-white/5 rounded-full hover:text-white transition-all"><i
-                        class="fas fa-video"></i></button>
+                <button onclick="initiateCall('video')" class="p-2.5 hover:bg-white/5 rounded-full hover:text-brand-pink transition-all"><i
+                        class="fas fa-video text-lg"></i></button>
+                <button onclick="initiateCall('voice')" class="p-2.5 hover:bg-white/5 rounded-full hover:text-brand-pink transition-all"><i
+                        class="fas fa-phone-alt text-lg"></i></button>
                 <button class="p-2.5 hover:bg-white/5 rounded-full hover:text-white transition-all"><i
                         class="fas fa-ellipsis-v"></i></button>
             </div>
@@ -1105,6 +1106,113 @@
             }, 1000);
         }
 
+        // --- AGORA REAL-TIME CALLING ENGINE ---
+        let agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+        let localTracks = { videoTrack: null, audioTrack: null };
+        let isAudioMuted = false;
+        let isVideoMuted = false;
+
+        async function initiateCall(type) {
+            vibrateDevice();
+            socket.emit('call-user', { 
+                targetId: PARTNER_ID, 
+                callerName: '<%= user.name %>', 
+                callType: type,
+                channelName: COUPLE_ID
+            });
+            showCallStatus(`Calling ${type}... 📞`, true);
+        }
+
+        socket.on('incoming-call', (data) => {
+            const modal = document.getElementById('incoming-call-modal');
+            document.getElementById('caller-name-text').innerText = data.callerName;
+            document.getElementById('call-type-label').innerText = `Incoming ${data.callType} call...`;
+            modal.classList.remove('hidden');
+            vibrateDevice();
+            
+            window.acceptCall = async () => {
+                modal.classList.add('hidden');
+                socket.emit('accept-call', { to: data.from, channelName: data.channelName, callType: data.callType });
+                startAgoraCall(data.channelName, data.callType);
+            };
+
+            window.rejectCall = () => {
+                modal.classList.add('hidden');
+                socket.emit('reject-call', { to: data.from });
+            };
+        });
+
+        socket.on('call-accepted', (data) => {
+            hideCallStatus();
+            startAgoraCall(data.channelName, data.callType);
+        });
+
+        socket.on('call-rejected', () => {
+            showCallStatus('Call Rejected ❌', false);
+            setTimeout(hideCallStatus, 2000);
+        });
+
+        socket.on('end-call-signal', () => leaveCall(false));
+
+        async function startAgoraCall(channelName, type) {
+            document.getElementById('active-call-overlay').classList.remove('hidden');
+            try {
+                const res = await fetch(`/api/agora-token?channelName=${channelName}&uid=0`);
+                const { token, appId } = await res.json();
+                await agoraClient.join(appId, channelName, token, null);
+                
+                localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+                if (type === 'video') {
+                    localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack();
+                    localTracks.videoTrack.play('local-video-container');
+                    await agoraClient.publish([localTracks.audioTrack, localTracks.videoTrack]);
+                } else {
+                    await agoraClient.publish([localTracks.audioTrack]);
+                    document.getElementById('local-video-container').innerHTML = `<div class="w-full h-full flex items-center justify-center bg-gray-900"><i class="fas fa-user-circle text-6xl text-brand-pink"></i></div>`;
+                }
+
+                agoraClient.on("user-published", async (user, mediaType) => {
+                    await agoraClient.subscribe(user, mediaType);
+                    if (mediaType === "video") user.videoTrack.play('remote-video-container');
+                    if (mediaType === "audio") user.audioTrack.play();
+                });
+            } catch (err) { leaveCall(); }
+        }
+
+        async function leaveCall(notify = true) {
+            for (let trackName in localTracks) {
+                if (localTracks[trackName]) {
+                    localTracks[trackName].stop();
+                    localTracks[trackName].close();
+                    localTracks[trackName] = null;
+                }
+            }
+            await agoraClient.leave();
+            document.getElementById('active-call-overlay').classList.add('hidden');
+            if (notify) socket.emit('end-call', { to: PARTNER_ID });
+        }
+
+        function toggleMute() {
+            isAudioMuted = !isAudioMuted;
+            localTracks.audioTrack.setEnabled(!isAudioMuted);
+            document.getElementById('mute-btn').innerHTML = isAudioMuted ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>';
+        }
+
+        function toggleVideo() {
+            isVideoMuted = !isVideoMuted;
+            if (localTracks.videoTrack) {
+                localTracks.videoTrack.setEnabled(!isVideoMuted);
+                document.getElementById('video-toggle-btn').innerHTML = isVideoMuted ? '<i class="fas fa-video-slash"></i>' : '<i class="fas fa-video"></i>';
+            }
+        }
+
+        function showCallStatus(text) {
+            const status = document.getElementById('call-status-indicator');
+            status.innerText = text;
+            status.classList.remove('hidden');
+        }
+        function hideCallStatus() { document.getElementById('call-status-indicator').classList.add('hidden'); }
+
         window.addEventListener('load', () => {
             initChat();
             markAsDelivered();
@@ -1166,6 +1274,27 @@
             </div>
         </div>
     </div>
+    <!-- --- AGORA CALL UI COMPONENTS --- -->
+    <div id="incoming-call-modal" class="hidden fixed inset-0 z-[500] bg-black/80 backdrop-blur-md flex items-center justify-center p-6">
+        <div class="w-full max-w-xs bg-[#1a1025] border border-white/10 rounded-[3rem] p-8 flex flex-col items-center text-center space-y-6">
+            <div class="relative"><div class="absolute inset-0 bg-brand-pink/20 rounded-full blur-2xl animate-pulse"></div><img src="/images/partner-avatar.png" class="w-24 h-24 rounded-full border-4 border-brand-pink relative"></div>
+            <div><h2 id="caller-name-text" class="text-2xl font-black text-white">Partner</h2><p id="call-type-label" class="text-gray-400 text-sm mt-1 uppercase tracking-widest font-bold font-sans">Incoming Call...</p></div>
+            <div class="flex space-x-4 w-full"><button onclick="rejectCall()" class="flex-1 bg-red-500/20 text-red-500 py-4 rounded-3xl"><i class="fas fa-times"></i></button><button onclick="acceptCall()" class="flex-1 bg-green-500 text-white py-4 rounded-3xl animate-bounce"><i class="fas fa-phone"></i></button></div>
+        </div>
+    </div>
+
+    <div id="active-call-overlay" class="hidden fixed inset-0 z-[600] bg-black">
+        <div id="remote-video-container" class="w-full h-full bg-gray-900"></div>
+        <div id="local-video-container" class="absolute top-8 right-6 w-32 h-44 bg-black rounded-2xl overflow-hidden border-2 border-white/20 z-10"></div>
+        <div class="absolute bottom-12 left-0 right-0 flex justify-center items-center space-x-6 z-20">
+            <button id="mute-btn" onclick="toggleMute()" class="w-14 h-14 rounded-full bg-white/10 border border-white/20 text-white flex items-center justify-center"><i class="fas fa-microphone"></i></button>
+            <button onclick="leaveCall()" class="w-16 h-16 rounded-full bg-red-500 text-white flex items-center justify-center"><i class="fas fa-phone-slash rotate-[135deg]"></i></button>
+            <button id="video-toggle-btn" onclick="toggleVideo()" class="w-14 h-14 rounded-full bg-white/10 border border-white/20 text-white flex items-center justify-center"><i class="fas fa-video"></i></button>
+        </div>
+    </div>
+
+    <div id="call-status-indicator" class="hidden fixed top-24 left-1/2 -translate-x-1/2 z-[400] bg-brand-pink text-white px-6 py-2 rounded-full font-black text-[10px] uppercase tracking-widest">Calling...</div>
+
 </body>
 
 
