@@ -1,0 +1,21 @@
+{
+  "name": "LoveSync: Ultimate Relationship Hub",
+  "short_name": "LoveSync",
+  "description": "Premium 1:1 multimedia connection for couples with high-fidelity offline sync.",
+  "start_url": "/home",
+  "display": "standalone",
+  "background_color": "#0a0514",
+  "theme_color": "#ff007f",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/210/210609.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/210/210609.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

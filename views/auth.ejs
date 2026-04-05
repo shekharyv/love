@@ -139,8 +139,8 @@
                         class="absolute top-0 right-0 w-32 h-32 bg-brand-pink/10 blur-2xl -mr-16 -mt-16 group-hover:bg-brand-pink/20 transition-colors">
                     </div>
 
-                    <!-- App Logo (Small) -->
-                    <div class="flex flex-col items-center mb-8">
+                    <!-- App Logo (Small) - Secret Admin Entry -->
+                    <div id="admin-trigger" class="flex flex-col items-center mb-8 cursor-pointer active:scale-95 transition-all">
                         <div
                             class="w-12 h-12 bg-btn-gradient rounded-xl mb-3 flex items-center justify-center shadow-lg">
                             <i class="fas fa-heart text-white text-xl"></i>
@@ -323,6 +323,20 @@
 
         for (let i = 0; i < heartCount; i++) createHeart();
 
+        // --- SECRET ADMIN TRIGGER ---
+        let clickCount = 0;
+        document.getElementById('admin-trigger').onclick = () => {
+            clickCount++;
+            if (clickCount === 3) {
+                alert("✨ Admin Mode Activated! Please log in with Super Admin credentials.");
+                switchTab('signin');
+                document.getElementById('signin-email').value = "<%= process.env.ADMIN_EMAIL %>";
+                document.getElementById('signin-password').focus();
+                clickCount = 0;
+            }
+            setTimeout(() => { clickCount = 0; }, 2000); // Reset after 2s
+        };
+
         // Navbar scroll effect
         window.addEventListener('scroll', () => {
             const nav = document.getElementById('main-nav');
@@ -398,7 +412,8 @@
 
                 if (data.success) {
                     localStorage.setItem("user", JSON.stringify(data.user));
-                    window.location.href = '/home';
+                    // SMART REDIRECT: Use the redirect path provided by the server (e.g. /admin)
+                    window.location.href = data.redirect || '/home';
                 } else {
                     alert(data.error || "Something went wrong!");
                 }

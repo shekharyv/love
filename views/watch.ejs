@@ -179,7 +179,38 @@
 
     <!-- YouTube & App Script -->
     <script>
-        const socket = io();
+        function createNoopSocket() {
+            return {
+                on: () => { },
+                emit: () => { },
+                connected: false
+            };
+        }
+
+        function createSocketClient() {
+            if (typeof io !== 'function') return createNoopSocket();
+            try {
+                const s = io({
+                    path: '/socket.io',
+                    transports: ['websocket'],
+                    upgrade: false,
+                    withCredentials: true,
+                    reconnection: true,
+                    reconnectionAttempts: 5,
+                    timeout: 10000
+                });
+
+                s.on('connect_error', (err) => {
+                    console.warn('Realtime temporarily unavailable:', err.message);
+                });
+                return s;
+            } catch (err) {
+                console.warn('Socket init failed:', err.message);
+                return createNoopSocket();
+            }
+        }
+
+        const socket = createSocketClient();
         const USER_ID = "<%= user._id %>";
         let PARTNER_ID = null;
         let COUPLE_ID = null;

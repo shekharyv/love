@@ -18,7 +18,13 @@ const mongoose = require('mongoose');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    path: '/socket.io',
+    cors: {
+        origin: true,
+        credentials: true
+    }
+});
 
 // Prevent Unhandled Rejections from crashing
 process.on('unhandledRejection', (reason, promise) => {
@@ -31,34 +37,19 @@ const LOCAL_MONGODB_URI = 'mongodb://127.0.0.1:27017/lovesync';
 
 let activeMongoUri = MONGODB_URI;
 
-// --- SMART-SYNC MONGODB CONNECTION ---
-console.log("Attempting to connect to MongoDB... ⏳");
-const mongoClientPromise = mongoose.connect(MONGODB_URI, {
-    family: 4,
-    serverSelectionTimeoutMS: 10000
-})
-    .then(() => {
-        console.log('✅ Success: Connected to MongoDB Atlas Cloud Cluster! 🚀');
+// --- STRICT REAL DATA INITIALIZATION ---
+const mongoClientPromise = (async () => {
+    try {
+        console.log("Connecting to CLOUD MongoDB (Real Data)... ⏳");
+        await mongoose.connect(MONGODB_URI, { family: 4, serverSelectionTimeoutMS: 5000 });
         activeMongoUri = MONGODB_URI;
+        console.log('✅ Connected to CLOUD Cluster: Real Data Mode Active. 💎');
         return mongoose.connection.getClient();
-    })
-    .catch(async (err) => {
-        console.error('⚠️ Cloud Connection Failed. Using LOCAL Fallback... 🔌');
-        console.error(`Reason: ${err.message}`);
-
-        await mongoose.connect(LOCAL_MONGODB_URI, {
-            family: 4,
-            serverSelectionTimeoutMS: 10000
-        });
-
-        console.log('✅ Success: Connected to LOCAL MongoDB! 💻');
-        activeMongoUri = LOCAL_MONGODB_URI;
-        return mongoose.connection.getClient();
-    })
-    .catch((localErr) => {
-        console.error('🛑 DATABASE ERROR: Both Cloud and Local failed!', localErr.message);
-        throw localErr;
-    });
+    } catch (err) {
+        console.error('🛑 DATABASE ERROR: Cloud connection failed!', err.message);
+        process.exit(1);
+    }
+})();
 
 // Schemas
 const ActivitySchema = new mongoose.Schema({
@@ -93,7 +84,11 @@ const UserSchema = new mongoose.Schema({
     pendingRequest: { type: String, default: null },
     streak: { type: Number, default: 0 },
     loveScore: { type: Number, default: 0 },
-    mood: { type: String, default: '😴' }
+    mood: { type: String, default: '😴' },
+    level: { type: Number, default: 1 },
+    exp: { type: Number, default: 0 },
+    lastQuizDate: { type: Date, default: null },
+    ghostMode: { type: Boolean, default: false } // --- GHOST MODE ADDED ---
 });
 const QuizResultSchema = new mongoose.Schema({
     coupleId: String,
@@ -132,17 +127,78 @@ app.use(session({
 
 // Auth Middleware (Fixed & Shared)
 const checkAuth = async (req, res, next) => {
+    // SECURITY GUARD: Never redirect if we are already headed to auth
+    if (req.path === '/auth' || req.path === '/login' || req.path === '/') return next();
+
     if (req.session.userId) {
-        res.locals.user = await User.findById(req.session.userId);
-        if (res.locals.user) return next();
+        try {
+            const u = await User.findById(req.session.userId);
+            if (u) {
+                res.locals.user = u;
+                return next();
+            }
+        } catch (e) { }
+        req.session.userId = null; 
     }
     res.redirect('/auth');
 };
+
+// --- NEW: STREAK SYNC MIDDLEWARE ---
+const syncStreak = async (req, res, next) => {
+    if (res.locals.user) {
+        const user = res.locals.user;
+        if (user.lastQuizDate) {
+            const last = new Date(user.lastQuizDate);
+            const today = new Date();
+            // Calculate difference in midnights for a proper daily streak
+            const diffTime = Math.abs(today.setHours(0,0,0,0) - last.setHours(0,0,0,0));
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays > 1) { 
+                user.streak = 0;
+                await User.updateOne({ _id: user._id }, { streak: 0 });
+            }
+        }
+    }
+    next();
+};
+
+// Global Middlewares (Non-blocking)
+app.use(syncStreak);
 
 // Generate Unique Love Code Helper
 function generateLoveCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
+
+// Super Admin Security
+const checkSuperAdmin = async (req, res, next) => {
+    try {
+        // --- MASTER BYPASS: CHECK SESSION FIRST ---
+        if (req.session.isAdmin) {
+            return next();
+        }
+
+        const adminEmail = (process.env.ADMIN_EMAIL || 'admin@loveyapa.com').trim().toLowerCase();
+        
+        // Fallback: Recover from DB if session flag is missing but userId exists
+        if (req.session.userId) {
+            const user = await User.findById(req.session.userId);
+            if (user && user.email.trim().toLowerCase() === adminEmail) {
+                req.session.isAdmin = true; // Fix the session for future hits
+                res.locals.user = user;
+                return next();
+            }
+        }
+
+        console.log(`🚫 Admin Access Denied to: ${req.originalUrl}`);
+        if (req.accepts('html')) return res.redirect('/auth');
+        res.status(403).json({ error: "Unauthorized" });
+    } catch (e) {
+        console.error("🛑 SECURITY FAIL:", e.message);
+        res.redirect('/auth');
+    }
+};
 
 // --- LOGOUT ---
 app.get('/logout', (req, res) => {
@@ -155,7 +211,7 @@ app.get('/logout', (req, res) => {
 app.get('/watch', checkAuth, (req, res) => res.render('watch', { user: res.locals.user }));
 app.get('/', (req, res) => res.render('index'));
 app.get('/auth', (req, res) => {
-    if (req.session.userId) return res.redirect('/home');
+    // Definitive loop break: Always render auth page, do not auto-redirect to home
     res.render('auth');
 });
 
@@ -167,6 +223,92 @@ app.get('/profile', checkAuth, (req, res) => res.render('profile', { user: res.l
 app.get('/camera', checkAuth, (req, res) => res.render('camera', { user: res.locals.user }));
 app.get('/quiz', checkAuth, (req, res) => res.render('quiz', { user: res.locals.user }));
 app.get('/discover', checkAuth, (req, res) => res.render('discover', { user: res.locals.user }));
+app.get('/admin', checkAuth, checkSuperAdmin, (req, res) => res.render('admin', { user: res.locals.user }));
+
+// --- ADMIN SYSTEM APIs ---
+app.get('/api/admin/stats', checkAuth, checkSuperAdmin, async (req, res) => {
+    try {
+        const totalUsers = await User.countDocuments();
+        const activeCouples = await User.countDocuments({ partnerId: { $ne: null } });
+        res.json({ totalUsers, activeCouples: Math.floor(activeCouples / 2) });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/broadcast', checkAuth, checkSuperAdmin, async (req, res) => {
+    try {
+        const { message } = req.body;
+        // Broadcast via Socket.IO to everyone
+        io.emit('system-alert', { message, timestamp: new Date() });
+        res.json({ success: true, sentTo: "All Active Connections" });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/admin/users', checkAuth, checkSuperAdmin, async (req, res) => {
+    try {
+        const dbStatus = mongoose.connection.readyState === 1 ? "Connected 🟢" : "Disconnected 🔴";
+        console.log(`[ADMIN ACCESS] DB: ${dbStatus}, URI: ${activeMongoUri.substring(0, 30)}...`);
+        
+        // --- FORCE PURGE DUMMY DATA ---
+        const purgeResult = await User.deleteMany({ email: /@loveyapa\.com$/i });
+        if (purgeResult.deletedCount > 0) {
+            console.log(`🔥 [PURGE] Automatically removed ${purgeResult.deletedCount} Dummy Users!`);
+        }
+
+        const users = await User.find().sort({ _id: -1 }); // Newest first
+        console.log(`[ADMIN] Returning ${users.length} Real Users. Check for Yashvi in this list:`, users.map(u => u.email));
+        res.json(users);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/admin/delete-user/:id', checkAuth, checkSuperAdmin, async (req, res) => {
+    try {
+        await User.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/update-streak', checkAuth, checkSuperAdmin, async (req, res) => {
+    try {
+        const { userId, streak } = req.body;
+        await User.findByIdAndUpdate(userId, { streak: streak });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- NEW: DEDICATED INTELLIGENCE PAGE ---
+app.get('/admin/user-intelligence/:id', checkSuperAdmin, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) return res.redirect('/admin');
+
+        const messages = await Message.find({ 
+            $or: [{ senderId: user._id.toString() }, { receiverId: user._id.toString() }] 
+        }).sort({ timestamp: -1 }).limit(200);
+
+        const activities = await Activity.find({ userId: user._id.toString() }).sort({ timestamp: -1 }).limit(100);
+
+        res.render('admin-intelligence', { user, messages, activities, admin: res.locals.user });
+    } catch (e) { 
+        console.error("🛑 INTELLIGENCE PAGE CRASH:", e.message);
+        res.redirect('/admin'); 
+    }
+});
+
+// --- NEW: DEEP USER DATA FOR ADMIN (JSON API) ---
+app.get('/api/admin/user-deep-data/:id', checkAuth, checkSuperAdmin, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const messages = await Message.find({ 
+            $or: [{ senderId: user._id.toString() }, { receiverId: user._id.toString() }] 
+        }).sort({ timestamp: -1 }).limit(100);
+
+        const activities = await Activity.find({ userId: user._id.toString() }).sort({ timestamp: -1 }).limit(50);
+
+        res.json({ user, messages, activities });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 
 app.post('/api/send-voice', checkAuth, async (req, res) => {
@@ -309,7 +451,146 @@ app.post('/send-message', checkAuth, async (req, res) => {
 });
 
 
-// Guide: Get Chat History
+// --- NEW: BEHAVIOR ANALYTICS API ---
+app.get('/api/insights/behavior', checkAuth, async (req, res) => {
+    try {
+        const user = res.locals.user;
+        if (!user.partnerId) return res.json({ 
+            user: { speed: "0s", snaps: 0, missed: 0, accuracy: 0 }, 
+            partner: { speed: "0s", snaps: 0, missed: 0, accuracy: 0 } 
+        });
+
+        const coupleId = [user._id.toString(), user.partnerId].sort().join('_');
+        const messages = await Message.find({ coupleId }).sort({ timestamp: -1 }).limit(100);
+
+        const getStats = (senderId, receiverId) => {
+            let totalSpeed = 0, speedCount = 0;
+            let snapCount = 0;
+            let missedCount = 0;
+
+            for (let i = 0; i < messages.length - 1; i++) {
+                const msg = messages[i];
+                const prev = messages[i+1];
+
+                if (msg.senderId.toString() === senderId.toString() && prev.senderId.toString() === receiverId.toString()) {
+                    const diff = (msg.timestamp - prev.timestamp) / (1000 * 60);
+                    if (diff > 0 && diff < 120) { totalSpeed += diff; speedCount++; }
+                }
+
+                if (msg.senderId.toString() === senderId.toString() && msg.type === 'image') snapCount++;
+                if (msg.receiverId.toString() === senderId.toString() && msg.type === 'image' && !msg.seen) missedCount++;
+            }
+
+            const avgSpeed = speedCount > 0 ? (totalSpeed / speedCount) : null;
+            return {
+                speed: avgSpeed === null ? "--" : (avgSpeed > 1 ? avgSpeed.toFixed(1) + "m" : (avgSpeed * 60).toFixed(0) + "s"),
+                snaps: snapCount > 0 ? Math.ceil(snapCount / 7) : 0,
+                missed: missedCount,
+                accuracy: 85
+            };
+        };
+
+        // --- Weekly Chart Data Generation ---
+        const getWeeklyData = (userId) => {
+            const days = [0,0,0,0,0,0,0]; // Sun to Sat
+            messages.forEach(m => {
+                if (m.senderId.toString() === userId.toString()) {
+                    const day = new Date(m.timestamp).getDay();
+                    days[day]++;
+                }
+            });
+            // Normalize to 0-300 range for SVG
+            return days.map(val => Math.max(50, 250 - (val * 10)));
+        };
+
+        const partner = await User.findById(user.partnerId);
+
+        // --- NEW: Dynamic Level Calculation ---
+        const calculateLevel = (exp) => {
+            if (exp < 500) return { lvl: 1, title: "New Couple 🌱", next: 500 };
+            if (exp < 1500) return { lvl: 2, title: "Getting Closer 💕", next: 1500 };
+            if (exp < 3500) return { lvl: 3, title: "Caring Partner ❤️", next: 3500 };
+            if (exp < 7000) return { lvl: 4, title: "Deeply Devoted 🔥", next: 7000 };
+            return { lvl: 5, title: "Soulmates ♾️", next: 15000 };
+        };
+
+        // Estimate EXP from last 100 messages (as a baseline for training)
+        const estimatedExp = messages.length * 10 + (user.loveScore * 5);
+        const rank = calculateLevel(estimatedExp);
+
+        res.json({
+            user: getStats(user._id.toString(), user.partnerId),
+            partner: getStats(user.partnerId, user._id.toString()),
+            userScore: user.loveScore || 0,
+            partnerScore: partner ? partner.loveScore : 0,
+            weeklyUser: getWeeklyData(user._id),
+            weeklyPartner: getWeeklyData(user.partnerId),
+            rank: {
+                level: rank.lvl,
+                title: rank.title,
+                exp: estimatedExp,
+                nextExp: rank.next,
+                percent: Math.floor((estimatedExp / rank.next) * 100)
+            }
+        });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- NEW: REPLY SPEED ANALYTICS ---
+app.get('/api/analytics/reply-speed', checkAuth, async (req, res) => {
+    try {
+        const user = res.locals.user;
+        if (!user.partnerId) return res.json({ userSpeed: 0, partnerSpeed: 0 });
+
+        const coupleId = [user._id.toString(), user.partnerId].sort().join('_');
+        const messages = await Message.find({ coupleId }).sort({ timestamp: -1 }).limit(100);
+
+        const calculateSpeed = (senderId, receiverId) => {
+            let totalDiff = 0;
+            let count = 0;
+
+            for (let i = 0; i < messages.length - 1; i++) {
+                const msg = messages[i];
+                const prevMsg = messages[i + 1];
+
+                // If msg was sent by 'senderId' as a reply to 'receiverId'
+                if (msg.senderId.toString() === senderId.toString() && prevMsg.senderId.toString() === receiverId.toString()) {
+                    const diff = (msg.timestamp - prevMsg.timestamp) / (1000 * 60); // minutes
+                    if (diff > 0 && diff < 120) { // Limit to 2 hours to avoid outliers
+                        totalDiff += diff;
+                        count++;
+                    }
+                }
+            }
+            return count > 0 ? (totalDiff / count).toFixed(1) : 0;
+        };
+
+        const userSpeed = calculateSpeed(user._id.toString(), user.partnerId);
+        const partnerSpeed = calculateSpeed(user.partnerId, user._id.toString());
+
+        res.json({ userSpeed, partnerSpeed });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- QUIZ SUBMISSION API (Increments Streak) ---
+app.post('/api/quiz/submit', checkAuth, async (req, res) => {
+    try {
+        const user = res.locals.user;
+        const today = new Date().toDateString();
+        const lastQ = user.lastQuizDate ? new Date(user.lastQuizDate).toDateString() : null;
+
+        if (lastQ === today) {
+            return res.json({ success: true, alreadyDone: true });
+        }
+
+        user.streak += 1;
+        user.exp += 100; // Reward for doing quiz
+        user.lastQuizDate = new Date();
+        await user.save();
+
+        res.json({ success: true, newStreak: user.streak });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
 app.get('/messages/:userId/:partnerId', checkAuth, async (req, res) => {
     try {
         const userId = req.params.userId.trim();
@@ -371,29 +652,72 @@ app.get('/api/chat-history', checkAuth, async (req, res) => {
 app.post('/api/signup', async (req, res) => {
     try {
         const { name, email, password } = req.body;
+        console.log(`🚀 [SIGNUP ATTEMPT] Name: ${name}, Email: ${email}`);
+        
         const exists = await User.findOne({ email });
-        if (exists) return res.status(400).json({ error: "User already registered! 🧐" });
+        if (exists) {
+            console.log(`⚠️ [SIGNUP] User ${email} already exists.`);
+            return res.status(400).json({ error: "User already registered! 🧐" });
+        }
 
         const user = await User.create({ name, email, password, code: generateLoveCode() });
+        console.log(`✅ [SIGNUP SUCCESS] New User Created: ${user.email} (ID: ${user._id})`);
+        
         req.session.userId = user._id;
         res.json({ success: true, user: { _id: user._id, name: user.name, email: user.email, partnerId: user.partnerId } });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { 
+        console.error("🛑 [SIGNUP ERROR]:", err.message);
+        res.status(500).json({ error: err.message }); 
+    }
 });
 
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = await User.findOne({ email, password });
+        const loginEmail = (email || "").trim().toLowerCase();
+        const loginPass = (password || "").trim();
 
+        const adminEmail = (process.env.ADMIN_EMAIL || 'admin@loveyapa.com').trim().toLowerCase();
+        const adminPass = (process.env.ADMIN_PASS || 'loveadmin999').trim();
+
+        console.log(`[AUTH DEBUG] Attempt: '${loginEmail}' vs Target: '${adminEmail}'`);
+        console.log(`[AUTH DEBUG] Pass Match: ${loginPass === adminPass}`);
+
+        // Check if this is the Super Admin attempting login
+        if (loginEmail === adminEmail && loginPass === adminPass) {
+            let adminUser = await User.findOne({ email: adminEmail });
+            if (!adminUser) {
+                const adminCode = "AD" + Math.random().toString(36).substring(2, 6).toUpperCase();
+                adminUser = await User.create({ 
+                    name: "Super Admin", 
+                    email: adminEmail, 
+                    password: adminPass, 
+                    code: adminCode,
+                    level: 99,
+                    exp: 99999
+                });
+                console.log(`🚀 Admin Seeded: ${adminCode}`);
+            }
+            req.session.userId = adminUser._id;
+            req.session.isAdmin = true;
+            await req.session.save();
+            return res.json({ success: true, user: adminUser, isAdmin: true, redirect: '/admin' });
+        }
+
+        const user = await User.findOne({ email: loginEmail, password: loginPass });
         if (!user) {
-            const allUsers = await User.find({}, 'email name');
-            console.log("Login Failed. Current Users in DB:", allUsers);
+            console.warn(`[AUTH FAIL] No match for: ${loginEmail}`);
             return res.status(401).json({ error: "Invalid email or password! ❌" });
         }
 
         req.session.userId = user._id;
+        req.session.isAdmin = false;
+        await req.session.save();
         res.json({ success: true, user: { _id: user._id, name: user.name, email: user.email, partnerId: user.partnerId } });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { 
+        console.error("LOGIN ERROR:", err);
+        res.status(500).json({ error: err.message }); 
+    }
 });
 
 app.get('/api/logout', (req, res) => {
@@ -443,18 +767,46 @@ app.get('/api/partner', checkAuth, async (req, res) => {
         });
     }
 
+    const partner = await User.findById(user.partnerId);
+    if (!partner) return res.json({ name: "Unknown", partnerId: null });
+
+    // --- GHOST MODE STATUS CHECK ---
+    if (partner.ghostMode) {
+        return res.json({
+            name: partner.name,
+            partnerId: partner._id,
+            status: "Offline", // Hard-coded offline for stealth
+            streak: user.streak,
+            image: "/images/partner-avatar.png",
+            partnerMood: "None",
+            myMood: myLastMood ? myLastMood.content : "None",
+            isGhosting: true
+        });
+    }
+
     const lastActivity = await Activity.findOne({ userId: user.partnerId }).sort({ timestamp: -1 });
     const lastPartnerMood = await Activity.findOne({ userId: user.partnerId, type: 'mood' }).sort({ timestamp: -1 });
 
     res.json({
-        name: user.partnerName,
-        partnerId: user.partnerId,
+        name: partner.name,
+        partnerId: partner._id,
         status: lastActivity ? `Active ${Math.floor((new Date() - lastActivity.timestamp) / 60000)}m ago` : "Online",
         streak: user.streak,
         image: "/images/partner-avatar.png",
         partnerMood: lastPartnerMood ? lastPartnerMood.content : "None",
         myMood: myLastMood ? myLastMood.content : "None"
     });
+});
+
+// --- TOGGLE GHOST MODE ---
+app.post('/api/toggle-ghost', checkAuth, async (req, res) => {
+    try {
+        const user = await User.findById(req.session.userId);
+        user.ghostMode = !user.ghostMode;
+        await user.save();
+        console.log(`🎭 GHOST MODE: ${user.name} ➔ ${user.ghostMode ? 'ENABLED 🌑' : 'DISABLED ☀️'}`);
+        res.json({ success: true, ghostMode: user.ghostMode });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/love-score', checkAuth, async (req, res) => {
@@ -907,6 +1259,10 @@ io.on('connection', async (socket) => {
 
     socket.on('typing', (data) => {
         if (data.coupleId) socket.to(data.coupleId).emit('typing', { isTyping: data.isTyping });
+    });
+
+    socket.on('love-action', (data) => {
+        if (data.coupleId) io.to(data.coupleId).emit('trigger-rain', data);
     });
 
     // --- WebRTC Signaling for Calls ---
