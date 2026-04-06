@@ -108,9 +108,14 @@
 <body class="min-h-screen pb-40">
     <div id="heart-container" class="fixed inset-0 pointer-events-none z-0"></div>
 
-    <div id="syncSection" class="<%= user.partnerId ? 'hidden' : '' %> grid place-items-center min-h-screen p-6">
+    <div id="syncSection" class="<%= user.partnerId ? 'hidden' : '' %> fixed inset-0 grid place-items-center p-6 animate-in fade-in zoom-in duration-500 z-[200] bg-[#0a0514]">
         <div class="w-full max-w-xl p-10 glass-card premium-glow relative overflow-hidden">
-            <h2 class="text-3xl font-black text-white text-center mb-10 italic">Connect with your partner <span
+            <% if (user.partnerId) { %>
+                <button onclick="hideSyncSection()" class="absolute top-6 left-6 text-gray-500 hover:text-white transition-all text-xs font-black uppercase tracking-widest">
+                    <i class="fas fa-arrow-left mr-2"></i> Back
+                </button>
+            <% } %>
+            <h2 class="text-3xl font-black text-white text-center mb-10 italic mt-4">Connect with your partner <span
                     class="text-brand-pink text-4xl">❤️</span></h2>
             <div class="mb-10 text-center glass-card bg-black/20 p-8 border-white/5">
                 <p class="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] mb-4">Your Secret Love Code
@@ -313,13 +318,13 @@
         <section class="space-y-6">
             <h4 class="font-black text-xs uppercase tracking-widest ml-4">Preferences & Bond 🔄</h4>
             <div class="glass-card overflow-hidden divide-y divide-white/5">
-                <div class="p-6 flex items-center justify-between hover:bg-white/5 transition-all text-left">
+                <button onclick="showSyncSection()" id="change-partner-btn" class="w-full p-6 flex items-center justify-between hover:bg-white/5 transition-all text-left cursor-pointer active:scale-95 outline-none border-none">
                     <div class="flex items-center space-x-4">
                         <i class="fas fa-sync text-orange-400"></i>
                         <span class="text-sm font-bold">Change Partner</span>
                     </div>
                     <i class="fas fa-chevron-right text-[10px] text-gray-600"></i>
-                </div>
+                </button>
                 <div class="p-6 flex items-center justify-between hover:bg-white/5 transition-all text-left">
                     <div class="flex items-center space-x-4">
                         <i class="fas fa-bell text-blue-400"></i>
@@ -464,6 +469,10 @@
             container.appendChild(heart);
             setTimeout(() => heart.remove(), 10000);
         }
+        function vibrateDevice() {
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+
         setInterval(createHeart, 1000);
 
         function showToast(msg) {
@@ -518,6 +527,21 @@
 
         function toggleSettings() {
             showToast("Settings coming soon! ⚙️");
+        }
+
+        function showSyncSection() {
+            vibrateDevice();
+            document.getElementById('profileSection').classList.add('hidden');
+            document.getElementById('syncSection').classList.remove('hidden');
+            document.getElementById('partnerCode').focus();
+            showToast("Switching to Sync Mode... ❤️");
+        }
+
+        function hideSyncSection() {
+            vibrateDevice();
+            console.log("Closing Sync Section...");
+            document.getElementById('syncSection').classList.add('hidden');
+            document.getElementById('profileSection').classList.remove('hidden');
         }
 
         window.onload = loadPartnerInfo;
