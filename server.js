@@ -430,25 +430,45 @@ app.post('/api/open-snap', checkAuth, async (req, res) => {
 });
 
 
-app.post('/api/send-message', checkAuth, async (req, res) => {
-    try {
-        const { senderId, receiverId, text } = req.body;
-        const coupleId = [senderId, receiverId].sort().join('_');
-        const newMsg = await Message.create({ coupleId, senderId, receiverId, text, type: 'text', status: 'sent' });
-        io.to(coupleId).emit('chat message', { user: res.locals.user.name, text: newMsg.text, type: 'text', time: newMsg.time, senderId: senderId, status: 'sent' });
-        res.json({ success: true, message: "Stored" });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-
 app.post('/send-message', checkAuth, async (req, res) => {
     try {
-        const { senderId, receiverId, text } = req.body;
+        const { senderId, receiverId, text, type } = req.body;
         const coupleId = [senderId, receiverId].sort().join('_');
-        const newMsg = await Message.create({ coupleId, senderId, receiverId, text, type: 'text', status: 'sent' });
-        io.to(coupleId).emit('chat message', { user: res.locals.user.name, text: newMsg.text, type: 'text', time: newMsg.time, senderId: senderId, status: 'sent', _id: newMsg._id });
-        res.send("Message stored ✅");
-    } catch (e) { res.status(500).send("Error: " + e.message); }
+        
+        // Initial status: sent
+        let status = 'sent';
+
+        // Check if partner is in the room for instant delivery
+        const clients = io.sockets.adapter.rooms.get(coupleId);
+        if (clients && clients.size > 1) {
+            status = 'delivered';
+        }
+
+        const newMsg = await Message.create({ 
+            coupleId, 
+            senderId, 
+            receiverId, 
+            text, 
+            type: type || 'text', 
+            status: status,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+
+        // 🔥 Broadcast for Real-time
+        io.to(coupleId).emit('chat message', {
+            _id: newMsg._id,
+            user: res.locals.user.name,
+            text: newMsg.text,
+            type: newMsg.type,
+            time: newMsg.time,
+            senderId: senderId,
+            status: status
+        });
+
+        res.json({ success: true, message: "Stored & Emitted" });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 
@@ -742,14 +762,27 @@ app.post('/api/connect-partner', checkAuth, async (req, res) => {
 
         if (!partner) return res.status(404).json({ error: "Invalid code! ❌" });
         if (partner._id.toString() === me._id.toString()) return res.status(400).json({ error: "Your own code? 😅" });
-        if (me.partnerId) return res.status(400).json({ error: "Already connect!" });
 
+        // If I accept a request or start one, and I already have a partner, clear THAT partner first
         if (me.pendingRequest === partner._id.toString()) {
-            await User.findByIdAndUpdate(me._id, { partnerId: partner._id, partnerName: partner.name, pendingRequest: null });
-            await User.findByIdAndUpdate(partner._id, { partnerId: me._id, partnerName: me.name, pendingRequest: null });
+            // DISCONNECT OLD PARTNER IF EXISTS
+            if (me.partnerId) {
+                await User.findByIdAndUpdate(me.partnerId, { partnerId: null, partnerName: "" });
+            }
+            // DISCONNECT NEW PARTNER'S OLD PARTNER IF EXISTS
+            if (partner.partnerId) {
+                await User.findByIdAndUpdate(partner.partnerId, { partnerId: null, partnerName: "" });
+            }
+
+            await User.findByIdAndUpdate(me._id, { partnerId: partner._id, partnerName: partner.name, pendingRequest: null, exp: 0, loveScore: 0, streak: 0 });
+            await User.findByIdAndUpdate(partner._id, { partnerId: me._id, partnerName: me.name, pendingRequest: null, exp: 0, loveScore: 0, streak: 0 });
+            
+            console.log(`🔗 [SYNC] New Partnership formed: ${me.name} ❤️ ${partner.name}`);
             return res.json({ success: true, status: 'connected', partnerName: partner.name });
         } else {
+            // Before sending a request, I don't necessarily disconnect, but clicking the button allows me to enter a new code
             await User.findByIdAndUpdate(partner._id, { pendingRequest: me._id });
+            console.log(`📩 [SYNC] Request sent from ${me.name} to ${partner.name}`);
             return res.json({ success: true, status: 'waiting' });
         }
     } catch (err) { res.status(500).json({ error: "Server error!" }); }
@@ -815,30 +848,38 @@ app.get('/api/agora-token', checkAuth, (req, res) => {
     const appId = process.env.AGORA_APP_ID;
     const appCertificate = process.env.AGORA_APP_CERTIFICATE;
     const channelName = req.query.channelName;
-    const uid = req.query.uid || 0;
+    const uid = 0; // Defaulting to 0 for simplicity in 1-to-1 calls
     const role = RtcRole.PUBLISHER;
     const expirationTimeInSeconds = 3600;
     const currentTimestamp = Math.floor(Date.now() / 1000);
     const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
 
+    console.log(`📡 [AGORA] Token request for channel: ${channelName} from User: ${res.locals.user.name}`);
+
     if (!channelName) {
+        console.warn(`⚠️ [AGORA] Missing channelName in request.`);
         return res.status(400).json({ error: 'Channel name is required 🛡️' });
     }
 
-    if (!appId || !appCertificate || appCertificate === 'PASTE_YOUR_APP_CERTIFICATE_HERE') {
-        console.warn("⚠️ AGORA SECURITY: Missing App Certificate. Using Test Mode (App ID only). 🛡️");
-        // Returning dummy success if cert missing for dev, or fail
+    if (!appId || !appCertificate || appCertificate.includes('PASTE')) {
+        console.warn(`🛑 [AGORA] Missing App Certificate in .env. Call will likely fail. Sending appId only for dev mode. 🛡️`);
+        return res.json({ appId, token: '', error: "CERT_MISSING_DEV_MODE" });
     }
 
     try {
         const token = RtcTokenBuilder.buildTokenWithUid(
-            appId, appCertificate, channelName, uid, role, privilegeExpiredTs
+            appId,
+            appCertificate,
+            channelName,
+            uid,
+            role,
+            privilegeExpiredTs
         );
-        console.log(`📡 TOKEN ISSUED: Channel [${channelName}] | UID [${uid}]`);
-        return res.json({ token, appId });
+        console.log(`✅ [AGORA] Token generated successfully for channel: ${channelName}`);
+        res.json({ token, appId });
     } catch (e) {
-        console.error("TOKEN ERROR:", e);
-        return res.status(500).json({ error: 'Token generation failed' });
+        console.error(`❌ [AGORA] Token build failed: ${e.message}`);
+        res.status(500).json({ error: e.message });
     }
 });
 
@@ -1251,15 +1292,17 @@ const activeCinemas = new Map(); // Global State
 io.on('connection', async (socket) => {
     // --- AGORA CALL SIGNALING ---
     socket.on('call-user', (data) => {
+        console.log(`📞 [CALL] User ${data.callerName} initiating ${data.callType} call to partner room: ${data.targetId}`);
         socket.to(data.targetId).emit('incoming-call', {
-            from: socket.id,
+            from: data.callerId, // 🔥 Correct: Use persistent User ID
             callerName: data.callerName,
-            callType: data.callType,
+            type: data.callType,
             channelName: data.channelName
         });
     });
 
     socket.on('accept-call', (data) => {
+        console.log(`🟢 [CALL] Partner accepted the call in room: ${data.channelName}`);
         socket.to(data.to).emit('call-accepted', {
             channelName: data.channelName,
             callType: data.callType
@@ -1267,18 +1310,22 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('reject-call', (data) => {
+        console.log(`🔴 [CALL] Partner rejected call.`);
         socket.to(data.to).emit('call-rejected');
     });
 
     socket.on('end-call', (data) => {
+        console.log(`🛑 [CALL] Connection ended locally.`);
         socket.to(data.to).emit('end-call-signal');
     });
 
     socket.on('join', async (data) => {
         const { userId, partnerId } = data;
         const coupleId = [userId, partnerId].sort().join('_');
+        
         socket.join(coupleId);
-
+        socket.join(userId); // Join individual room for direct signaling (calls)
+        
         // Mark all messages where I AM THE RECEIVER as seen
         await Message.updateMany(
             { coupleId, receiverId: userId, status: { $ne: 'seen' } },
@@ -1323,22 +1370,7 @@ io.on('connection', async (socket) => {
         if (data.coupleId) io.to(data.coupleId).emit('trigger-rain', data);
     });
 
-    // --- WebRTC Signaling for Calls ---
-    socket.on('call-user', (data) => {
-        socket.to(data.coupleId).emit('incoming-call', { offer: data.offer, from: data.from, type: data.type });
-    });
-
-    socket.on('answer-call', (data) => {
-        socket.to(data.coupleId).emit('call-answered', { answer: data.answer });
-    });
-
-    socket.on('ice-candidate', (data) => {
-        socket.to(data.coupleId).emit('ice-candidate', { candidate: data.candidate });
-    });
-
-    socket.on('hangup', (data) => {
-        socket.to(data.coupleId).emit('call-ended');
-    });
+    // --- WATCH TOGETHER SOCKETS & PERSISTENCE ---
 
     // --- WATCH TOGETHER SOCKETS & PERSISTENCE ---
     socket.on('watch-join', ({ userId, partnerId }) => {
