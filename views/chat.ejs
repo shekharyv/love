@@ -520,6 +520,9 @@
             console.log("📡 [SOCKET] Connected. Joining Couple Room...");
             socket.emit('join', { userId: USER_ID, partnerId: PARTNER_ID });
         });
+        socket.on('reconnect', () => {
+            socket.emit('join', { userId: USER_ID, partnerId: PARTNER_ID });
+        });
 
         // --- NEW: SEND ON ENTER ---
         msgInput.addEventListener('keydown', (e) => {
@@ -717,9 +720,27 @@
         }
 
         socket.on('chat message', (msg) => {
+            console.log("📥 [SOCKET] Real-Time Message Received:", msg);
+            // Check if message already rendered (prevent duplicates from local echo)
+            const exists = document.getElementById(`msg-${msg._id}`);
+            if (exists) {
+                // Update existing temp message with real ID and status
+                exists.id = `msg-${msg._id}`;
+                const statusEl = exists.querySelector('.status-icon');
+                if (statusEl) statusEl.innerHTML = getStatusIcon(msg.status);
+                return;
+            }
             renderMessage(msg);
             scrollToBottom();
-            if (msg.senderId !== USER_ID) vibrateDevice();
+            if (msg.senderId !== USER_ID) {
+                vibrateDevice();
+                markAsSeen();
+            }
+        });
+
+        socket.on('messages seen', () => {
+            console.log("🟡 [SOCKET] Messages Seen by Partner! Updating Ticks...");
+            loadMessages(); // Direct UI Refresh
         });
 
         msgInput.addEventListener('input', () => {
@@ -813,24 +834,16 @@
                 return;
             }
 
-            try {
-                // 📡 STEP 2: SEND TO SERVER
-                const res = await fetch("/send-message", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ senderId: USER_ID, receiverId: PARTNER_ID, text: text })
-                });
-                
-                const responseData = await res.json();
-                if (responseData.success) {
-                    createHeartEffect();
-                    // Optional: Server provides the real ID soon via socket
-                }
-            } catch (err) { 
-                console.error("Fetch failed, queueing offline...", err);
-                offlineQueue.push(msgData);
-                localStorage.setItem('offline_msgs', JSON.stringify(offlineQueue));
-            }
+            // --- PURE SOCKET EMIT (HYPER REAL-TIME) ---
+            socket.emit('chat message', {
+                userId: USER_ID,
+                partnerId: PARTNER_ID,
+                text: text,
+                type: 'text',
+                userName: USER_NAME
+            });
+            
+            createHeartEffect();
         }
 
         async function loadMessages() {
@@ -849,9 +862,15 @@
                 scrollToBottom();
 
                 // On load, mark messages as seen
-                await markAsSeen();
+                markAsSeen();
             } catch (e) { console.error(e); }
         }
+
+        // --- DYNAMIC SEEN TRIGGER ---
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') markAsSeen();
+        });
+        window.addEventListener('focus', markAsSeen);
 
         async function markAsSeen() {
             if (!PARTNER_ID) return;
@@ -875,13 +894,14 @@
         }
 
         socket.on('messages seen', () => loadMessages());
-        socket.on('chat message', (msg) => {
-            if (msg.senderId !== USER_ID) {
-                markAsSeen();
-                showWebNotification(msg);
-                vibrateDevice();
+        socket.on('typing', (data) => {
+            const indicator = document.getElementById('typing-indicator');
+            if (data.isTyping) {
+                indicator.classList.remove('hidden');
+                scrollToBottom();
+            } else {
+                indicator.classList.add('hidden');
             }
-            loadMessages();
         });
 
         function showWebNotification(msg) {
@@ -964,27 +984,28 @@
                 contentHTML = `<p class="text-[11px] font-semibold leading-[1.3] text-white/95">${msg.text}</p>`;
             }
 
+            const displayTime = new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
             const bubble = document.createElement('div');
+            bubble.id = msg._id ? `msg-${msg._id}` : `temp-${Date.now()}`;
             bubble.className = `flex ${isMe ? 'justify-end' : 'justify-start'} w-full group animate-in slide-in-from-${isMe ? 'right' : 'left'} duration-300 mb-1`;
             bubble.innerHTML = `
                 <div class="max-w-[85%] ${isMe ? 'order-2' : 'order-1'}">
                     <div class="msg-bubble ${isMe ? 'msg-right' : 'msg-left'} group relative cursor-pointer" onclick="showReactions(this)">
                         ${contentHTML}
                         <div class="flex items-center justify-end space-x-1 mt-0.5">
-                            <span class="text-[7px] font-bold uppercase opacity-40">${msg.time}</span>
-                            ${isMe ? `<span class="status-icon text-[9px]">${getStatusIcon(msg.status)}</span>` : ''}
+                            <span class="text-[7px] font-bold uppercase opacity-60 text-white/50">${displayTime}</span>
+                            ${isMe ? `<span class="status-icon text-[9px] flex">${getStatusIcon(msg.status)}</span>` : ''}
                         </div>
                     </div>
-                    ${isMe && msg.status === 'seen' ? `<p class="text-[7px] font-bold uppercase text-brand-pink/60 text-right pr-2 mt-1">Seen ${getRelativeSeenTime(msg.seenAt)}</p>` : ''}
                 </div>`;
             chatContainer.appendChild(bubble);
         }
 
         function getStatusIcon(status) {
-            if (status === 'seen') return '<i class="fas fa-check-double text-yellow-400"></i>';
-            if (status === 'delivered') return '<i class="fas fa-check-double text-white/30"></i>';
-            if (status === 'waiting') return '<i class="fas fa-clock text-white/30 animate-pulse"></i>';
-            return '<i class="fas fa-check text-white/30"></i>';
+            if (status === 'seen') return '<i class="fas fa-check-double text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.6)] scale-110"></i>';
+            if (status === 'delivered') return '<i class="fas fa-check-double text-white/40"></i>';
+            if (status === 'sent') return '<i class="fas fa-check text-white/40"></i>';
+            return '<i class="fas fa-clock text-white/20 animate-pulse"></i>';
         }
 
         function getRelativeSeenTime(seenAt) {

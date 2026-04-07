@@ -174,7 +174,7 @@
                     💑</p>
             <div class="inline-flex items-center space-x-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
                 <i class="far fa-calendar-alt text-[10px] text-gray-500"></i>
-                <span class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Together for 120 Days
+                <span class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Together for <%= user.streak %> Days
                     ❤️</span>
             </div>
             <button onclick="window.location.href='/edit-profile'"
@@ -262,7 +262,7 @@
                 <div class="glass-card p-6 flex items-center justify-between">
                     <div>
                         <p class="text-[9px] font-black text-gray-500 uppercase mb-1">Total Snaps</p>
-                        <h5 class="text-lg font-black italic">120 Snaps 📸</h5>
+                        <h5 class="text-lg font-black italic"><%= user.loveScore * 2 %> Snaps 📸</h5>
                     </div>
                 </div>
                 <div class="glass-card p-6 flex items-center justify-between">
@@ -289,7 +289,7 @@
                         <div class="w-2 h-2 bg-brand-pink rounded-full ring-8 ring-brand-pink/10"></div>
                         <div>
                             <p class="font-black text-sm italic">First Snap Sent ❤️</p>
-                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">120 Days ago</p>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest"><%= user.streak %> Days ago</p>
                         </div>
                     </div>
                 </div>
