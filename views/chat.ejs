@@ -873,28 +873,48 @@
             input.value = '';
             socket.emit('typing', { coupleId: COUPLE_ID, isTyping: false });
 
-            // --- OFFLINE QUEUING ---
-            if (!navigator.onLine) {
-                offlineQueue.push(msgData);
-                localStorage.setItem('offline_msgs', JSON.stringify(offlineQueue));
-                isSending = false;
-                return;
-            }
+            try {
+                // --- RELIABLE FALLBACK (POST FIRST) ---
+                const response = await fetch("/send-message", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        senderId: USER_ID,
+                        receiverId: PARTNER_ID,
+                        text: text,
+                        type: 'text',
+                        tempId: tempId
+                    })
+                });
 
-            // --- PURE SOCKET EMIT ---
-            socket.emit('chat message', {
-                userId: USER_ID,
-                partnerId: PARTNER_ID,
-                text: text,
-                type: 'text',
-                userName: USER_NAME,
-                tempId: tempId
-            });
-            
-            createHeartEffect();
-            
-            // Re-enable sending after short delay to prevent double-taps
-            setTimeout(() => { isSending = false; }, 500);
+                if (!response.ok) throw new Error("HTTP Failed");
+
+                // --- PURE SOCKET EMIT (AS FAST BACKUP) ---
+                socket.emit('chat message', {
+                    userId: USER_ID,
+                    partnerId: PARTNER_ID,
+                    text: text,
+                    type: 'text',
+                    userName: USER_NAME,
+                    tempId: tempId
+                });
+                
+                createHeartEffect();
+            } catch (e) {
+                console.warn("⚠️ POST Failed, falling back to Socket only:", e);
+                // Try Socket only as fallback
+                socket.emit('chat message', {
+                    userId: USER_ID,
+                    partnerId: PARTNER_ID,
+                    text: text,
+                    type: 'text',
+                    userName: USER_NAME,
+                    tempId: tempId
+                });
+            } finally {
+                // Re-enable sending
+                setTimeout(() => { isSending = false; }, 300);
+            }
         }
 
         async function loadMessages() {

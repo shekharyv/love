@@ -444,7 +444,7 @@ app.post('/api/open-snap', checkAuth, async (req, res) => {
 
 app.post('/send-message', checkAuth, async (req, res) => {
     try {
-        const { senderId, receiverId, text, type } = req.body;
+        const { senderId, receiverId, text, type, tempId } = req.body;
         const coupleId = [senderId, receiverId].sort().join('_');
         
         // Initial status: sent
@@ -474,7 +474,8 @@ app.post('/send-message', checkAuth, async (req, res) => {
             type: newMsg.type,
             time: newMsg.time,
             senderId: senderId,
-            status: status
+            status: status,
+            tempId: tempId
         });
 
         res.json({ success: true, message: "Stored & Emitted" });
