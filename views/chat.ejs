@@ -619,6 +619,31 @@
             hangupCall(false);
         });
 
+        // 🔥 CRITICAL: VERCEL CALL POLLING FALLBACK
+        let isHandlingActiveCall = false;
+        async function checkIncomingCall() {
+            if (isHandlingActiveCall || !document.getElementById('incoming-call-modal').classList.contains('hidden')) return;
+            
+            try {
+                const res = await fetch('/api/check-call');
+                const data = await res.json();
+                
+                if (data.call) {
+                    // Trigger Incoming UI
+                    document.getElementById('caller-name-text').innerText = data.call.callerName;
+                    document.getElementById('call-type-label').innerText = `Loveyapa ${data.call.type} call...`;
+                    document.getElementById('incoming-call-modal').classList.remove('hidden');
+                    
+                    window.activeCallPartner = data.call.from;
+                    window.activeCallChannel = data.call.channelName;
+                    window.activeCallType = data.call.type;
+                    
+                    ringtone.play().catch(e => {});
+                }
+            } catch (e) {}
+        }
+        setInterval(checkIncomingCall, 3000);
+
         async function startAgoraCall(channelName, type) {
             const overlay = document.getElementById('call-overlay');
             overlay.classList.remove('hidden');

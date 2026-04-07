@@ -893,41 +893,38 @@ app.get('/api/agora-token', checkAuth, (req, res) => {
     const appId = process.env.AGORA_APP_ID;
     const appCertificate = process.env.AGORA_APP_CERTIFICATE;
     const channelName = req.query.channelName;
-    const uid = 0; // Defaulting to 0 for simplicity in 1-to-1 calls
+    const uid = 0; 
     const role = RtcRole.PUBLISHER;
     const expirationTimeInSeconds = 3600;
     const currentTimestamp = Math.floor(Date.now() / 1000);
     const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
 
-    console.log(`📡 [AGORA] Token request for channel: ${channelName} from User: ${res.locals.user.name}`);
-
-    if (!channelName) {
-        console.warn(`⚠️ [AGORA] Missing channelName in request.`);
-        return res.status(400).json({ error: 'Channel name is required 🛡️' });
-    }
+    if (!channelName) return res.status(400).json({ error: 'Channel name is required' });
 
     if (!appId || !appCertificate || appCertificate.includes('PASTE_YOUR')) {
-        console.error(`🛑 [AGORA ERROR] AGORA_APP_CERTIFICATE is missing in .env!`);
-        console.log(`💡 [TIPS] Secure calling needs a certificate. Falling back to Unsecured Dev Mode (Token-less).`);
-        return res.json({ token: '', appId, warning: "CERT_REQUIRED_FOR_PRODUCTION" });
+        return res.json({ token: '', appId, warning: "CERT_REQUIRED" });
     }
 
     try {
-        const token = RtcTokenBuilder.buildTokenWithUid(
-            appId,
-            appCertificate,
-            channelName,
-            uid,
-            role,
-            privilegeExpiredTs
-        );
-        console.log(`✅ [AGORA] Token generated successfully for channel: ${channelName}`);
+        const token = RtcTokenBuilder.buildTokenWithUid(appId, appCertificate, channelName, uid, role, privilegeExpiredTs);
         res.json({ token, appId });
-    } catch (e) {
-        console.error(`❌ [AGORA] Token build failed: ${e.message}`);
-        res.status(500).json({ error: e.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+// 🔥 NEW: CALL SIGNAL POLLING FOR VERCEL
+app.get('/api/check-call', checkAuth, (req, res) => {
+    const userId = res.locals.user._id.toString();
+    const signal = activeCallSignals.get(userId);
+    
+    // Clear signals older than 30s
+    if (signal && (Date.now() - signal.timestamp > 30000)) {
+        activeCallSignals.delete(userId);
+        return res.json({ call: null });
+    }
+    
+    res.json({ call: signal || null });
+});
+
 
 app.get('/api/love-score', checkAuth, async (req, res) => {
     const user = res.locals.user;
@@ -1342,30 +1339,39 @@ app.get('/api/quiz-status', checkAuth, async (req, res) => {
 
 // Real-time Socket.io
 // --- SOCKET.IO LOGIC ---
-const activeCinemas = new Map(); // Global State
+const activeCinemas = new Map();
+const activeCallSignals = new Map(); // 🔥 Fix for Vercel/Serverless Call Polling
+
 io.on('connection', async (socket) => {
+    const userId = socket.handshake.query.userId || socket.userId;
+
     // --- AGORA CALL SIGNALING ---
     socket.on('call-user', (data) => {
-        console.log(`📞 [CALL] User ${data.callerName} initiating ${data.callType} call to partner room: ${data.targetId}`);
-        socket.to(data.targetId).emit('incoming-call', {
-            from: data.callerId, // 🔥 Correct: Use persistent User ID
+        console.log(`📞 [CALL] User ${data.callerName} initiating ${data.callType} call to ${data.targetId}`);
+        
+        // Signal Buffer for Vercel Polling
+        activeCallSignals.set(data.targetId, {
+            from: data.callerId,
             callerName: data.callerName,
             type: data.callType,
-            channelName: data.channelName
+            channelName: data.channelName,
+            timestamp: Date.now()
         });
+
+        socket.to(data.targetId).emit('incoming-call', activeCallSignals.get(data.targetId));
     });
 
     socket.on('accept-call', (data) => {
-        console.log(`🟢 [CALL] Partner accepted the call in room: ${data.channelName}`);
-        socket.to(data.to).emit('call-accepted', {
-            channelName: data.channelName,
-            callType: data.callType
-        });
+        activeCallSignals.delete(userId);
+        console.log(`🟢 [CALL] Partner accepted.`);
+        socket.to(data.to).emit('call-accepted', data);
     });
 
     socket.on('reject-call', async (data) => {
+        activeCallSignals.delete(userId);
         console.log(`🔴 [CALL] Partner rejected call.`);
         socket.to(data.to).emit('call-rejected');
+
         
         // Save missed call record
         try {
