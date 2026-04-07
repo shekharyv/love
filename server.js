@@ -1391,7 +1391,7 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('chat message', async (msg) => {
-        const { userId, partnerId, text, type, userName } = msg;
+        const { userId, partnerId, text, type, userName, tempId } = msg;
         const coupleId = [userId, partnerId].sort().join('_');
 
         let status = 'sent';
@@ -1418,7 +1418,8 @@ io.on('connection', async (socket) => {
             time: newMsg.time,
             senderId: userId,
             status: status,
-            timestamp: newMsg.timestamp
+            timestamp: newMsg.timestamp,
+            tempId: tempId // Return tempId to sender
         });
     });
 
