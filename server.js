@@ -1,4 +1,5 @@
 const Groq = require('groq-sdk');
+const similarity = require('string-similarity');
 require('dotenv').config();
 const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
 const dns = require('dns');
@@ -99,6 +100,17 @@ const QuizResultSchema = new mongoose.Schema({
     timestamp: { type: Date, default: Date.now }
 });
 const QuizResult = mongoose.model('QuizResult', QuizResultSchema);
+
+const TruthDareHistorySchema = new mongoose.Schema({
+    userId: String,
+    partnerId: String,
+    coupleId: String,
+    question: String,
+    type: String,
+    level: String,
+    createdAt: { type: Date, default: Date.now }
+});
+const TruthDareHistory = mongoose.model('TruthDareHistory', TruthDareHistorySchema);
 
 const User = mongoose.model('User', UserSchema);
 
@@ -478,55 +490,64 @@ app.get('/api/insights/behavior', checkAuth, async (req, res) => {
         const user = res.locals.user;
         if (!user.partnerId) return res.json({ 
             user: { speed: "0s", snaps: 0, missed: 0, accuracy: 0 }, 
-            partner: { speed: "0s", snaps: 0, missed: 0, accuracy: 0 } 
+            partner: { speed: "0s", snaps: 0, missed: 0, accuracy: 0 },
+            userScore: user.loveScore || 0,
+            partnerScore: 0,
+            weeklyUser: [250,250,250,250,250,250,250],
+            weeklyPartner: [250,250,250,250,250,250,250],
+            rank: { level: 1, title: "New Couple 🌱", exp: 0, nextExp: 500, percent: 0 }
         });
 
         const coupleId = [user._id.toString(), user.partnerId].sort().join('_');
-        const messages = await Message.find({ coupleId }).sort({ timestamp: -1 }).limit(100);
+        const messages = await Message.find({ coupleId }).sort({ timestamp: -1 }).limit(200);
 
-        const getStats = (senderId, receiverId) => {
+        const getStats = async (uid, pid) => {
             let totalSpeed = 0, speedCount = 0;
-            let snapCount = 0;
-            let missedCount = 0;
+            let snapCount = await Message.countDocuments({ senderId: uid, type: 'image' });
+            let missedCount = await Message.countDocuments({ receiverId: uid, status: { $ne: 'seen' } });
 
+            // Calculate Speed: Find msgs from receiver, then next msg from sender
             for (let i = 0; i < messages.length - 1; i++) {
-                const msg = messages[i];
-                const prev = messages[i+1];
-
-                if (msg.senderId.toString() === senderId.toString() && prev.senderId.toString() === receiverId.toString()) {
+                const msg = messages[i]; // newer
+                const prev = messages[i+1]; // older
+                if (msg.senderId.toString() === uid.toString() && prev.senderId.toString() === pid.toString()) {
                     const diff = (msg.timestamp - prev.timestamp) / (1000 * 60);
-                    if (diff > 0 && diff < 120) { totalSpeed += diff; speedCount++; }
+                    if (diff > 0 && diff < 180) { // Only count if within 3 hours
+                        totalSpeed += diff; speedCount++;
+                    }
                 }
-
-                if (msg.senderId.toString() === senderId.toString() && msg.type === 'image') snapCount++;
-                if (msg.receiverId.toString() === senderId.toString() && msg.type === 'image' && !msg.seen) missedCount++;
             }
 
             const avgSpeed = speedCount > 0 ? (totalSpeed / speedCount) : null;
+            
+            // Get Quiz Accuracy
+            const latestQuiz = await QuizResult.findOne({ userId: uid }).sort({ timestamp: -1 });
+            const acc = latestQuiz ? Math.round((latestQuiz.score / latestQuiz.total) * 100) : 85;
+
             return {
                 speed: avgSpeed === null ? "--" : (avgSpeed > 1 ? avgSpeed.toFixed(1) + "m" : (avgSpeed * 60).toFixed(0) + "s"),
-                snaps: snapCount > 0 ? Math.ceil(snapCount / 7) : 0,
+                snaps: snapCount,
                 missed: missedCount,
-                accuracy: 85
+                accuracy: acc
             };
         };
 
-        // --- Weekly Chart Data Generation ---
         const getWeeklyData = (userId) => {
-            const days = [0,0,0,0,0,0,0]; // Sun to Sat
-            messages.forEach(m => {
-                if (m.senderId.toString() === userId.toString()) {
-                    const day = new Date(m.timestamp).getDay();
-                    days[day]++;
-                }
+            const days = [0,0,0,0,0,0,0];
+            const oneWeekAgo = new Date(); oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+            messages.filter(m => m.timestamp >= oneWeekAgo && m.senderId.toString() === userId.toString()).forEach(m => {
+                const d = new Date(m.timestamp).getDay();
+                days[d]++;
             });
-            // Normalize to 0-300 range for SVG
-            return days.map(val => Math.max(50, 250 - (val * 10)));
+            return days.map(val => Math.max(50, 250 - (val * 15)));
         };
 
         const partner = await User.findById(user.partnerId);
+        const [uStats, pStats] = await Promise.all([
+            getStats(user._id, user.partnerId),
+            getStats(user.partnerId, user._id)
+        ]);
 
-        // --- NEW: Dynamic Level Calculation ---
         const calculateLevel = (exp) => {
             if (exp < 500) return { lvl: 1, title: "New Couple 🌱", next: 500 };
             if (exp < 1500) return { lvl: 2, title: "Getting Closer 💕", next: 1500 };
@@ -535,13 +556,12 @@ app.get('/api/insights/behavior', checkAuth, async (req, res) => {
             return { lvl: 5, title: "Soulmates ♾️", next: 15000 };
         };
 
-        // Estimate EXP from last 100 messages (as a baseline for training)
-        const estimatedExp = messages.length * 10 + (user.loveScore * 5);
+        const estimatedExp = (await Message.countDocuments({ coupleId })) * 5 + (user.loveScore * 10);
         const rank = calculateLevel(estimatedExp);
 
         res.json({
-            user: getStats(user._id.toString(), user.partnerId),
-            partner: getStats(user.partnerId, user._id.toString()),
+            user: uStats,
+            partner: pStats,
             userScore: user.loveScore || 0,
             partnerScore: partner ? partner.loveScore : 0,
             weeklyUser: getWeeklyData(user._id),
@@ -551,10 +571,34 @@ app.get('/api/insights/behavior', checkAuth, async (req, res) => {
                 title: rank.title,
                 exp: estimatedExp,
                 nextExp: rank.next,
-                percent: Math.floor((estimatedExp / rank.next) * 100)
+                percent: Math.min(100, Math.floor((estimatedExp / rank.next) * 100))
             }
         });
     } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/love-reminder', checkAuth, async (req, res) => {
+    try {
+        const user = res.locals.user;
+        if (!user.partnerId) return res.json({ show: false });
+
+        const lastMsg = await Message.findOne({ senderId: user._id }).sort({ timestamp: -1 });
+        const now = new Date();
+        let suggestion = "Send a quick heart to show you care! ❤️";
+        let show = true;
+
+        if (!lastMsg || (now - lastMsg.timestamp) > (1000 * 60 * 60 * 4)) {
+            suggestion = "It's been a while, why not say Hi? 😊";
+        } else if ((now.getHours() > 21)) {
+            suggestion = "Time to send a sweet Good Night wish? 🌙";
+        } else {
+            show = Math.random() > 0.5; // Randomly show other suggestions
+            const extra = ["Ask them how their day is going! ☀️", "A surprise compliment works wonders! ✨", "Share a quick snap of what you're doing! 📸"];
+            suggestion = extra[Math.floor(Math.random() * extra.length)];
+        }
+
+        res.json({ show, suggestion });
+    } catch (e) { res.json({ show: false }); }
 });
 
 // --- NEW: REPLY SPEED ANALYTICS ---
@@ -975,25 +1019,18 @@ app.post('/api/open-snap', checkAuth, async (req, res) => {
 });
 
 app.get('/api/generate-challenge', checkAuth, async (req, res) => {
-    const { type } = req.query; // 'truth' or 'dare'
+    const { type, level: lvlNum } = req.query; // type: 'truth'|'dare', level: 1|2|3|4
     const user = res.locals.user;
     if (!user.partnerId) return res.status(400).json({ error: "No partner synced!" });
 
     try {
         const coupleId = [user._id.toString(), user.partnerId].sort().join('_');
 
-        // Fetch last 15 messages for context
-        const recentMessages = await Message.find({ coupleId })
-            .sort({ timestamp: -1 })
-            .limit(15);
-
-        // Fetch last 10 challenges to avoid repeats
-        const lastGames = await Message.find({
-            coupleId,
-            text: { $regex: /^GAME CHALLENGE:/ }
-        }).limit(10).sort({ timestamp: -1 });
-
-        const avoidList = lastGames.map(g => g.text.replace('GAME CHALLENGE: ', '')).join(' | ');
+        // Fetch History for Duplicate Prevention
+        const [recentMessages, history] = await Promise.all([
+            Message.find({ coupleId }).sort({ timestamp: -1 }).limit(15),
+            TruthDareHistory.find({ coupleId }).sort({ createdAt: -1 }).limit(50)
+        ]);
 
         const context = recentMessages
             .filter(m => m.type === 'text' && !m.text.startsWith('GAME CHALLENGE:'))
@@ -1001,37 +1038,84 @@ app.get('/api/generate-challenge', checkAuth, async (req, res) => {
             .reverse()
             .join(' | ');
 
-        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-        const chatCompletion = await groq.chat.completions.create({
-            messages: [
-                {
-                    role: 'system',
-                    content: `You are LoveSync AI, a specialized adult relationship/couples coach. 
-                    Create a highly personalized, spicy, and explicitly romantic ${type} for a couple. 
-                    CONTEXT: ${context || 'They are sharing an intimate moment'}.
-                    AVOID THESE (PREVIOUS CHALLENGES): ${avoidList || 'None'}.
+        const levels = {
+            "1": "normal | Sweet, safe, fun vibes.",
+            "2": "medium | Romantic, flirty teasing.",
+            "3": "deep | Emotional bonding and connection.",
+            "4": "naughty | Bold, intimate, and passionate."
+        };
 
-                    DESIGN RULES:
-                    1. ADULT CONTENT: Be naughty, spicy, and daring. Explicit and naughty romantic challenges are ALLOWED.
-                    2. INNOVATION: Do not repeat previous themes or prompts. Use the context to be clever.
-                    3. SHORT: Max 15 words. Use emojis 🔥🫦👀💋.
-                    4. Output MUST be ONLY the challenge text. No introductory talk.`
-                },
-                {
-                    role: 'user',
-                    content: `Generate a naughty/spicy ${type} challenge.`
+        const levelInfo = levels[lvlNum] || levels["1"];
+        const [levelKey, levelGoal] = levelInfo.split(' | ');
+
+        const oldQuestions = history.map(h => h.question);
+        let tries = 0;
+        let resultChallenge = null;
+
+        while (tries < 3) {
+            const prompt = `
+                Generate one unique, human-like ${type.toUpperCase()} for a couple.
+                Level: ${levelKey} (${levelGoal})
+                Mood: ${user.mood || 'Happy'}
+                Avoid repeating: ${oldQuestions.slice(0, 20).join(' | ')}
+
+                Rules:
+                - Short, emotional, and Gen-Z style.
+                - If type=dare -> action. If type=truth -> question.
+                
+                Return JSON ONLY: { "type": "${type}", "level": "${levelKey}", "question": "..." }
+            `;
+
+            const completion = await groq.chat.completions.create({
+                messages: [{ role: 'user', content: prompt }],
+                model: 'llama-3.3-70b-versatile',
+                response_format: { type: "json_object" }
+            });
+
+            try {
+                const aiRes = JSON.parse(completion.choices[0].message.content);
+                const isDuplicate = oldQuestions.some(q => 
+                    similarity.compareTwoStrings(aiRes.question.toLowerCase(), q.toLowerCase()) > 0.6
+                );
+
+                if (!isDuplicate) {
+                    resultChallenge = aiRes;
+                    // Save to history
+                    await TruthDareHistory.create({
+                        userId: user._id,
+                        partnerId: user.partnerId,
+                        coupleId,
+                        question: aiRes.question,
+                        type,
+                        level: levelKey
+                    });
+                    break;
                 }
-            ],
-            model: 'llama-3.3-70b-versatile',
-        });
+                console.log(`[Loveyapa] Duplicate detected, retry ${tries + 1}...`);
+            } catch (e) {
+                console.error("[Loveyapa] Parse/Sim error:", e);
+            }
+            tries++;
+        }
 
-        let challenge = chatCompletion.choices[0].message.content.trim().replace(/"/g, '');
-        res.json({ challenge });
+        if (resultChallenge) {
+            res.json(resultChallenge);
+        } else {
+            const fallbackMap = {
+                truth: ["What is your favorite memory of us? ❤️", "Tell me one thing you love about my personality. ✨"],
+                dare: ["Send me a quick selfie with a heart sign 📸❤️", "Voice note: Say 'I love you' in your softest voice 🎤"]
+            };
+            const list = fallbackMap[type] || fallbackMap.truth;
+            const q = list[Math.floor(Math.random() * list.length)];
+            res.json({ type, level: levelKey, question: q, fallback: true });
+        }
+
     } catch (e) {
         console.error("GROQ ERROR:", e);
         res.status(500).json({ error: "AI failed to generate challenge" });
     }
 });
+
 
 app.get('/api/partner-mood', checkAuth, async (req, res) => {
     try {
@@ -1141,39 +1225,7 @@ app.post('/api/quiz-complete', checkAuth, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/insights/behavior', checkAuth, async (req, res) => {
-    try {
-        const user = res.locals.user;
-        const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
-        const coupleId = [user._id.toString(), (user.partnerId || '')].sort().join('_');
 
-        const messages = await Message.find({ coupleId, timestamp: { $gte: startOfDay } });
-
-        // Calculate Snap Frequency
-        const userSnaps = messages.filter(m => m.senderId === user._id.toString() && m.type === 'image').length;
-        const partnerSnaps = messages.filter(m => m.senderId === (user.partnerId || '') && m.type === 'image').length;
-
-        // Calculate Moments Missed (Unread)
-        const userMissed = await Message.countDocuments({ receiverId: user._id.toString(), status: { $ne: 'seen' } });
-        const partnerMissed = await Message.countDocuments({ receiverId: (user.partnerId || ''), status: { $ne: 'seen' } });
-
-        // Calculate Quiz Accuracy (Latest result)
-        const userQuiz = await QuizResult.findOne({ userId: user._id.toString() }).sort({ timestamp: -1 });
-        const partnerQuiz = await QuizResult.findOne({ userId: (user.partnerId || '') }).sort({ timestamp: -1 });
-
-        const userAcc = userQuiz ? Math.round((userQuiz.score / userQuiz.total) * 100) : 0;
-        const partnerAcc = partnerQuiz ? Math.round((partnerQuiz.score / partnerQuiz.total) * 100) : 0;
-
-        // Reply Speed Mock (Realistic based on msg count)
-        const userSpeed = messages.filter(m => m.senderId === user._id.toString()).length > 10 ? "1.2m" : "2.8m";
-        const partnerSpeed = messages.filter(m => m.senderId === (user.partnerId || '')).length > 8 ? "2.1m" : "3.4m";
-
-        res.json({
-            user: { speed: userSpeed, missed: userMissed, snaps: userSnaps, accuracy: userAcc },
-            partner: { speed: partnerSpeed, missed: partnerMissed, snaps: partnerSnaps, accuracy: partnerAcc }
-        });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
 app.get('/api/today-stats', checkAuth, async (req, res) => {
     try {
@@ -1342,23 +1394,31 @@ io.on('connection', async (socket) => {
         const { userId, partnerId, text, type, userName } = msg;
         const coupleId = [userId, partnerId].sort().join('_');
 
-        // Initial status: sent
         let status = 'sent';
-
-        // Check if partner is in the room for instant delivery (double check)
         const clients = io.sockets.adapter.rooms.get(coupleId);
         if (clients && clients.size > 1) {
-            status = 'delivered'; // They are both in the room!
+            status = 'delivered'; // Both are in the room
         }
 
-        const newMsg = await Message.create({ coupleId, senderId: userId, receiverId: partnerId, text, type: type || 'text', status: status });
+        const newMsg = await Message.create({ 
+            coupleId, 
+            senderId: userId, 
+            receiverId: partnerId, 
+            text, 
+            type: type || 'text', 
+            status: status 
+        });
+
+        // Instant Broadcast to BOTH partners
         io.to(coupleId).emit('chat message', {
+            _id: newMsg._id,
             user: userName,
             text: newMsg.text,
             type: newMsg.type,
             time: newMsg.time,
             senderId: userId,
-            status: status
+            status: status,
+            timestamp: newMsg.timestamp
         });
     });
 
