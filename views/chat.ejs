@@ -470,7 +470,10 @@
         const USER_ID = '<%= user._id %>';
         const USER_NAME = '<%= user.name %>';
         const PARTNER_ID = '<%= user.partnerId || "" %>';
-        const COUPLE_ID = [USER_ID, PARTNER_ID].sort().join('_');
+        // Generate stable Couple ID only if both IDs are present
+        const COUPLE_ID = (USER_ID && PARTNER_ID) ? [USER_ID, PARTNER_ID].sort().join('_') : '';
+        
+        let lastMessageTimestamp = 0; // Optimization for message loading
         
         // --- PRO CALLING ASSETS ---
         const ringtone = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
@@ -518,11 +521,21 @@
         // 🔥 JOIN THE PARTNER ROOM IMMEDIATELY
         socket.on('connect', () => {
             console.log("📡 [SOCKET] Connected. Joining Couple Room...");
-            socket.emit('join', { userId: USER_ID, partnerId: PARTNER_ID });
+            if (COUPLE_ID) {
+                socket.emit('join', { userId: USER_ID, partnerId: PARTNER_ID });
+            }
         });
         socket.on('reconnect', () => {
-            socket.emit('join', { userId: USER_ID, partnerId: PARTNER_ID });
+            if (COUPLE_ID) {
+                socket.emit('join', { userId: USER_ID, partnerId: PARTNER_ID });
+            }
         });
+
+        function initChat() {
+            console.log("💖 Initializing Chat...");
+            loadMessages();
+            scrollToBottom();
+        }
 
         // --- NEW: SEND ON ENTER ---
         msgInput.addEventListener('keydown', (e) => {
@@ -708,6 +721,16 @@
             remote.style.filter = css;
             local.style.filter = css;
         }
+        function vibrateDevice() {
+            if (window.navigator && window.navigator.vibrate) {
+                window.navigator.vibrate([50, 30, 50]);
+            }
+        }
+
+        function playReceiveSound() {
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+            audio.play().catch(e => console.log("Audio play blocked"));
+        }
 
         async function switchCamera() {
             if (!localTracks.videoTrack) return;
@@ -721,19 +744,28 @@
 
         socket.on('chat message', (msg) => {
             console.log("📥 [SOCKET] Real-Time Message Received:", msg);
-            // Check if message already rendered (prevent duplicates from local echo)
-            const exists = document.getElementById(`msg-${msg._id}`);
-            if (exists) {
-                // Update existing temp message with real ID and status
-                exists.id = `msg-${msg._id}`;
-                const statusEl = exists.querySelector('.status-icon');
-                if (statusEl) statusEl.innerHTML = getStatusIcon(msg.status);
-                return;
+            
+            // 🔥 STEP 1: Handle sender's temporary message update
+            if (msg.tempId && msg.senderId === USER_ID) {
+                const tempBubble = document.getElementById(`msg-${msg.tempId}`);
+                if (tempBubble) {
+                    tempBubble.id = `msg-${msg._id}`;
+                    const statusEl = tempBubble.querySelector('.status-icon');
+                    if (statusEl) statusEl.innerHTML = getStatusIcon(msg.status);
+                    return; // Sender confirmed, we're done
+                }
             }
+
+            // 🔥 STEP 2: Handle duplicate avoidance for other scenarios
+            const exists = document.getElementById(`msg-${msg._id}`);
+            if (exists) return;
+
             renderMessage(msg);
             scrollToBottom();
+            
             if (msg.senderId !== USER_ID) {
                 vibrateDevice();
+                playReceiveSound();
                 markAsSeen();
             }
         });
@@ -811,17 +843,19 @@
             const text = input.value.trim();
             if (!text || text === "") return;
 
+            const tempId = 'temp_' + Date.now();
             const msgData = { 
                 senderId: USER_ID, 
                 receiverId: PARTNER_ID, 
                 text: text,
                 type: 'text',
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                status: 'waiting'
+                status: 'waiting',
+                _id: tempId
             };
 
-            // 🚀 STEP 1: INSTANT LOCAL ECHO (Screen per turant dikhao)
-            renderMessage({ ...msgData, _id: 'temp_' + Date.now() });
+            // 🚀 STEP 1: INSTANT LOCAL ECHO
+            renderMessage(msgData);
             scrollToBottom();
             
             input.value = '';
@@ -840,20 +874,21 @@
                 partnerId: PARTNER_ID,
                 text: text,
                 type: 'text',
-                userName: USER_NAME
+                userName: USER_NAME,
+                tempId: tempId // Return tempId to sender
             });
             
             createHeartEffect();
         }
 
         async function loadMessages() {
-            if (!PARTNER_ID || !navigator.onLine) return; // Skip if offline
+            if (!PARTNER_ID || !navigator.onLine) return; 
             try {
                 const res = await fetch(`/messages/${USER_ID}/${PARTNER_ID}`);
                 const data = await res.json();
 
-                // Compare the entire state to catch "seen" updates
-                const currentState = JSON.stringify(data);
+                // Optimization: Only redraw if message count or status changed
+                const currentState = JSON.stringify(data.map(m => ({ id: m._id, status: m.status })));
                 if (window.lastChatState === currentState) return;
                 window.lastChatState = currentState;
 
@@ -861,9 +896,12 @@
                 data.forEach(renderMessage);
                 scrollToBottom();
 
-                // On load, mark messages as seen
+                if (data.length > 0) {
+                    lastMessageTimestamp = new Date(data[data.length - 1].timestamp).getTime();
+                }
+
                 markAsSeen();
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("LoadMessages Error:", e); }
         }
 
         // --- DYNAMIC SEEN TRIGGER ---
@@ -935,8 +973,12 @@
         requestNotificationPermission();
         socket.on('typing', (data) => {
             const indicator = document.getElementById('typing-indicator');
-            data.isTyping ? indicator.classList.remove('hidden') : indicator.classList.add('hidden');
-            scrollToBottom();
+            if (data.isTyping) {
+                indicator.classList.remove('hidden');
+                scrollToBottom();
+            } else {
+                indicator.classList.add('hidden');
+            }
         });
 
         function renderMessage(msg) {
@@ -984,9 +1026,9 @@
                 contentHTML = `<p class="text-[11px] font-semibold leading-[1.3] text-white/95">${msg.text}</p>`;
             }
 
-            const displayTime = new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+            const displayTime = msg.time || new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
             const bubble = document.createElement('div');
-            bubble.id = msg._id ? `msg-${msg._id}` : `temp-${Date.now()}`;
+            bubble.id = `msg-${msg._id}`;
             bubble.className = `flex ${isMe ? 'justify-end' : 'justify-start'} w-full group animate-in slide-in-from-${isMe ? 'right' : 'left'} duration-300 mb-1`;
             bubble.innerHTML = `
                 <div class="max-w-[85%] ${isMe ? 'order-2' : 'order-1'}">
@@ -1273,7 +1315,8 @@
         window.addEventListener('load', () => {
             initChat();
             markAsDelivered();
-            setInterval(loadMessages, 1500);
+            // Polling only as a safety net, but reduced frequency
+            setInterval(loadMessages, 3000);
         });
     </script>
 
