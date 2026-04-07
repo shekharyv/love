@@ -473,6 +473,10 @@
         // Generate stable Couple ID only if both IDs are present
         const COUPLE_ID = (USER_ID && PARTNER_ID) ? [USER_ID, PARTNER_ID].sort().join('_') : '';
         
+        console.log("🛠️ [CHAT DEBUG] My ID:", USER_ID);
+        console.log("🛠️ [CHAT DEBUG] Partner ID:", PARTNER_ID);
+        console.log("🛠️ [CHAT DEBUG] Room ID:", COUPLE_ID);
+        
         let lastMessageTimestamp = 0; // Optimization for message loading
         
         // --- PRO CALLING ASSETS ---
@@ -743,22 +747,27 @@
         }
 
         socket.on('chat message', (msg) => {
-            console.log("📥 [SOCKET] Real-Time Message Received:", msg);
+            console.log("📥 [SOCKET] Received:", msg);
             
-            // 🔥 STEP 1: Handle sender's temporary message update
+            // 🛡️ DEDUPLICATION & CONFIRMATION
             if (msg.tempId && msg.senderId === USER_ID) {
                 const tempBubble = document.getElementById(`msg-${msg.tempId}`);
                 if (tempBubble) {
+                    console.log("✅ [SYNC] Confirming local echo:", msg.tempId, "->", msg._id);
                     tempBubble.id = `msg-${msg._id}`;
                     const statusEl = tempBubble.querySelector('.status-icon');
                     if (statusEl) statusEl.innerHTML = getStatusIcon(msg.status);
-                    return; // Sender confirmed, we're done
+                    return; 
+                } else {
+                    console.log("⚠️ [SYNC] Temp bubble not found for ID:", msg.tempId);
                 }
             }
 
-            // 🔥 STEP 2: Handle duplicate avoidance for other scenarios
-            const exists = document.getElementById(`msg-${msg._id}`);
-            if (exists) return;
+            // Skip if database ID already exists in UI
+            if (document.getElementById(`msg-${msg._id}`)) {
+                console.log("🚫 [SYNC] Skipping duplicate message:", msg._id);
+                return;
+            }
 
             renderMessage(msg);
             scrollToBottom();
@@ -838,11 +847,14 @@
             loadMessages();
         }
 
+        let isSending = false;
         async function sendMessage() {
+            if (isSending) return;
             const input = document.getElementById("chatInput");
             const text = input.value.trim();
             if (!text || text === "") return;
 
+            isSending = true;
             const tempId = 'temp_' + Date.now();
             const msgData = { 
                 senderId: USER_ID, 
@@ -865,20 +877,24 @@
             if (!navigator.onLine) {
                 offlineQueue.push(msgData);
                 localStorage.setItem('offline_msgs', JSON.stringify(offlineQueue));
+                isSending = false;
                 return;
             }
 
-            // --- PURE SOCKET EMIT (HYPER REAL-TIME) ---
+            // --- PURE SOCKET EMIT ---
             socket.emit('chat message', {
                 userId: USER_ID,
                 partnerId: PARTNER_ID,
                 text: text,
                 type: 'text',
                 userName: USER_NAME,
-                tempId: tempId // Return tempId to sender
+                tempId: tempId
             });
             
             createHeartEffect();
+            
+            // Re-enable sending after short delay to prevent double-taps
+            setTimeout(() => { isSending = false; }, 500);
         }
 
         async function loadMessages() {
