@@ -563,14 +563,17 @@
             vibrateDevice();
             console.log(`🚀 [CALL] Dialing Partner: ${PARTNER_ID} in Room: ${COUPLE_ID}`);
             
+            // Show Outgoing UI
+            document.getElementById('outgoing-call-modal').classList.remove('hidden');
+            document.getElementById('outgoing-call-type').innerText = `Outgoing ${type} call...`;
+            
             socket.emit('call-user', { 
-                targetId: PARTNER_ID, // Recipient Room
-                callerId: USER_ID,   // 🔥 Added: Persistent Sender ID
+                targetId: PARTNER_ID, 
+                callerId: USER_ID,   
                 callerName: USER_NAME, 
                 callType: type,
                 channelName: COUPLE_ID
             });
-            showCallStatus(`Calling ${type}... 📞`);
         }
 
         socket.on('incoming-call', (data) => {
@@ -578,36 +581,43 @@
             vibrateDevice();
             ringtone.play().catch(e => console.log("🔇 Ringtone blocked by browser policy."));
 
-            const drawer = document.getElementById('incoming-call-box');
             document.getElementById('caller-name-text').innerText = data.callerName;
-            document.getElementById('call-type-label').innerText = `Incoming ${data.callType} call...`;
-            drawer.classList.remove('hidden');
+            document.getElementById('call-type-label').innerText = `Loveyapa ${data.type} call...`;
+            document.getElementById('incoming-call-modal').classList.remove('hidden');
             
-            window.acceptCall = async () => {
-                ringtone.pause(); ringtone.currentTime = 0;
-                drawer.classList.add('hidden');
-                socket.emit('accept-call', { to: data.from, channelName: data.channelName, callType: data.callType });
-                startAgoraCall(data.channelName, data.callType);
-            };
-
-            window.rejectCall = () => {
-                ringtone.pause(); ringtone.currentTime = 0;
-                drawer.classList.add('hidden');
-                socket.emit('reject-call', { to: data.from });
-            };
+            window.activeCallPartner = data.from;
+            window.activeCallChannel = data.channelName;
+            window.activeCallType = data.type;
         });
 
+        function acceptCall() {
+            ringtone.pause(); ringtone.currentTime = 0;
+            document.getElementById('incoming-call-modal').classList.add('hidden');
+            socket.emit('accept-call', { to: window.activeCallPartner, channelName: window.activeCallChannel, callType: window.activeCallType });
+            startAgoraCall(window.activeCallChannel, window.activeCallType);
+        }
+
+        function rejectCall() {
+            ringtone.pause(); ringtone.currentTime = 0;
+            document.getElementById('incoming-call-modal').classList.add('hidden');
+            socket.emit('reject-call', { to: window.activeCallPartner });
+        }
+
         socket.on('call-accepted', (data) => {
-            hideCallStatus();
+            document.getElementById('outgoing-call-modal').classList.add('hidden');
             startAgoraCall(data.channelName, data.callType);
         });
 
         socket.on('call-rejected', () => {
+            document.getElementById('outgoing-call-modal').classList.add('hidden');
             showCallStatus('Call Rejected ❌');
             setTimeout(hideCallStatus, 3000);
         });
 
-        socket.on('end-call-signal', () => leaveCall(false));
+        socket.on('end-call-signal', () => {
+            console.log("🛑 [CALL] Partner ended the call.");
+            hangupCall(false);
+        });
 
         async function startAgoraCall(channelName, type) {
             const overlay = document.getElementById('call-overlay');
@@ -1410,26 +1420,77 @@
             </div>
         </div>
     </div>
-    <!-- --- AGORA CALL UI COMPONENTS --- -->
-    <div id="incoming-call-modal" class="hidden fixed inset-0 z-[500] bg-black/80 backdrop-blur-md flex items-center justify-center p-6">
-        <div class="w-full max-w-xs bg-[#1a1025] border border-white/10 rounded-[3rem] p-8 flex flex-col items-center text-center space-y-6">
-            <div class="relative"><div class="absolute inset-0 bg-brand-pink/20 rounded-full blur-2xl animate-pulse"></div><img src="/images/partner-avatar.png" class="w-24 h-24 rounded-full border-4 border-brand-pink relative"></div>
-            <div><h2 id="caller-name-text" class="text-2xl font-black text-white">Partner</h2><p id="call-type-label" class="text-gray-400 text-sm mt-1 uppercase tracking-widest font-bold font-sans">Incoming Call...</p></div>
-            <div class="flex space-x-4 w-full"><button onclick="rejectCall()" class="flex-1 bg-red-500/20 text-red-500 py-4 rounded-3xl"><i class="fas fa-times"></i></button><button onclick="acceptCall()" class="flex-1 bg-green-500 text-white py-4 rounded-3xl animate-bounce"><i class="fas fa-phone"></i></button></div>
+    <!-- --- WHATSAPP STYLE CALLING UI --- -->
+    <div id="incoming-call-modal" class="hidden fixed inset-0 z-[1000] bg-[#0d0714]/95 backdrop-blur-2xl flex flex-col items-center justify-between py-24 overflow-hidden animate-fadeIn">
+        <div class="absolute inset-0 bg-gradient-to-b from-brand-pink/10 to-transparent"></div>
+        <div class="flex flex-col items-center text-center space-y-6 z-10">
+            <div class="relative">
+                <div class="absolute inset-0 bg-brand-pink/20 rounded-full blur-3xl animate-pulse"></div>
+                <img src="/images/partner-avatar.png" class="w-32 h-32 rounded-full border-4 border-brand-pink relative shadow-2xl scale-110">
+                <div class="absolute -bottom-2 -right-2 w-10 h-10 bg-brand-pink rounded-full flex items-center justify-center text-white border-4 border-[#0d0714]">
+                    <i class="fas fa-heart animate-bounce"></i>
+                </div>
+            </div>
+            <div>
+                <h2 id="caller-name-text" class="text-4xl font-black text-white tracking-tight">Partner</h2>
+                <p id="call-type-label" class="text-brand-pink font-bold uppercase tracking-[0.3em] text-[10px] mt-4 animate-pulse">Loveyapa Calling...</p>
+            </div>
+        </div>
+
+        <div class="flex space-x-12 z-10">
+            <button onclick="rejectCall()" class="w-20 h-20 bg-red-500/20 border border-red-500/30 rounded-full flex items-center justify-center text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-2xl active:scale-90">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+            <button onclick="acceptCall()" class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white shadow-2xl shadow-green-500/40 animate-bounce active:scale-95">
+                <i class="fas fa-phone text-2xl"></i>
+            </button>
         </div>
     </div>
 
-    <div id="active-call-overlay" class="hidden fixed inset-0 z-[600] bg-black">
-        <div id="remote-video-container" class="w-full h-full bg-gray-900"></div>
-        <div id="local-video-container" class="absolute top-8 right-6 w-32 h-44 bg-black rounded-2xl overflow-hidden border-2 border-white/20 z-10"></div>
-        <div class="absolute bottom-12 left-0 right-0 flex justify-center items-center space-x-6 z-20">
-            <button id="mute-btn" onclick="toggleMute()" class="w-14 h-14 rounded-full bg-white/10 border border-white/20 text-white flex items-center justify-center"><i class="fas fa-microphone"></i></button>
-            <button onclick="leaveCall()" class="w-16 h-16 rounded-full bg-red-500 text-white flex items-center justify-center"><i class="fas fa-phone-slash rotate-[135deg]"></i></button>
-            <button id="video-toggle-btn" onclick="toggleVideo()" class="w-14 h-14 rounded-full bg-white/10 border border-white/20 text-white flex items-center justify-center"><i class="fas fa-video"></i></button>
+    <!-- Outgoing Call Modal -->
+    <div id="outgoing-call-modal" class="hidden fixed inset-0 z-[1000] bg-[#0d0714]/95 backdrop-blur-2xl flex flex-col items-center justify-between py-24 animate-fadeIn">
+        <div class="flex flex-col items-center text-center space-y-6">
+            <img src="/images/partner-avatar.png" class="w-32 h-32 rounded-full border-4 border-white/10 grayscale opacity-80">
+            <div>
+                <h2 class="text-3xl font-black text-white">Calling...</h2>
+                <p id="outgoing-call-type" class="text-white/40 text-xs font-bold uppercase tracking-widest mt-2">Connecting to partner</p>
+            </div>
         </div>
+        <button onclick="hangupCall()" class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center text-white shadow-2xl shadow-red-600/30">
+            <i class="fas fa-phone-slash text-2xl rotate-[135deg]"></i>
+        </button>
     </div>
 
-    <div id="call-status-indicator" class="hidden fixed top-24 left-1/2 -translate-x-1/2 z-[400] bg-brand-pink text-white px-6 py-2 rounded-full font-black text-[10px] uppercase tracking-widest">Calling...</div>
+    <!-- Active Call Overlay -->
+    <div id="call-overlay" class="hidden fixed inset-0 z-[1100] bg-black">
+        <div id="remote-video" class="w-full h-full bg-slate-900 flex items-center justify-center">
+            <div class="text-center">
+                <img src="/images/partner-avatar.png" class="w-32 h-32 rounded-full border-2 border-brand-pink mx-auto mb-4 animate-pulse">
+                <p id="calling-status" class="text-brand-pink text-xs font-black uppercase tracking-widest animate-pulse">Connecting partner...</p>
+            </div>
+        </div>
+        
+        <div id="local-video" class="absolute top-10 right-6 w-32 h-44 bg-black rounded-3xl overflow-hidden border-2 border-white/20 z-50 shadow-2xl"></div>
+
+        <div class="absolute top-10 left-6 z-50">
+            <div id="call-timer" class="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full text-white font-mono text-sm border border-white/10 hidden">00:00</div>
+        </div>
+
+        <!-- Call Controls -->
+        <div class="absolute bottom-12 left-0 right-0 flex flex-col items-center space-y-8 z-50">
+            <div class="flex items-center space-x-6">
+                <button id="mic-btn" onclick="toggleMic()" class="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white flex items-center justify-center group transition-all active:scale-95">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button onclick="hangupCall()" class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center text-white shadow-[0_0_30px_rgba(220,38,38,0.5)] transform hover:scale-110 active:scale-90 transition-all">
+                    <i class="fas fa-phone-slash text-3xl rotate-[135deg]"></i>
+                </button>
+                <button id="video-btn" onclick="toggleVideo()" class="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white flex items-center justify-center group transition-all active:scale-95">
+                    <i class="fas fa-video"></i>
+                </button>
+            </div>
+        </div>
+    </div>
 
 </body>
 

@@ -1363,9 +1363,23 @@ io.on('connection', async (socket) => {
         });
     });
 
-    socket.on('reject-call', (data) => {
+    socket.on('reject-call', async (data) => {
         console.log(`🔴 [CALL] Partner rejected call.`);
         socket.to(data.to).emit('call-rejected');
+        
+        // Save missed call record
+        try {
+            const coupleId = [userId, data.to].sort().join('_');
+            await Message.create({
+                coupleId,
+                senderId: userId,
+                receiverId: data.to,
+                text: "Missed Call 📞",
+                type: 'text',
+                status: 'delivered'
+            });
+            io.to(coupleId).emit('chat message', { text: "Missed Call 📞", senderId: userId });
+        } catch (err) {}
     });
 
     socket.on('end-call', (data) => {
