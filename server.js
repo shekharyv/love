@@ -905,9 +905,10 @@ app.get('/api/agora-token', checkAuth, (req, res) => {
         return res.status(400).json({ error: 'Channel name is required 🛡️' });
     }
 
-    if (!appId || !appCertificate || appCertificate.includes('PASTE')) {
-        console.warn(`🛑 [AGORA] Missing App Certificate in .env. Call will likely fail. Sending appId only for dev mode. 🛡️`);
-        return res.json({ appId, token: '', error: "CERT_MISSING_DEV_MODE" });
+    if (!appId || !appCertificate || appCertificate.includes('PASTE_YOUR')) {
+        console.error(`🛑 [AGORA ERROR] AGORA_APP_CERTIFICATE is missing in .env!`);
+        console.log(`💡 [TIPS] Secure calling needs a certificate. Falling back to Unsecured Dev Mode (Token-less).`);
+        return res.json({ token: '', appId, warning: "CERT_REQUIRED_FOR_PRODUCTION" });
     }
 
     try {
@@ -1372,19 +1373,50 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('join', async (data) => {
-        const { userId, partnerId } = data;
+        let { userId, partnerId } = data;
+        if (!userId) return;
+
+        // Ensure IDs are strings
+        userId = userId.toString();
+        partnerId = partnerId ? partnerId.toString() : '';
+
         const coupleId = [userId, partnerId].sort().join('_');
+        
+        console.log(`📡 [SOCKET] User ${userId} joining room ${coupleId}. Partner: ${partnerId}`);
         
         socket.join(coupleId);
         socket.join(userId); // Join individual room for direct signaling (calls)
+
+        // --- PARTNERSHIP RECIPROCITY CHECK ---
+        // If B is A's partner, but A is NOT B's partner, fix it.
+        try {
+            if (partnerId) {
+                const me = await User.findById(userId);
+                const them = await User.findById(partnerId);
+                
+                if (me && them) {
+                    if (them.partnerId !== userId) {
+                        console.log(`🛠️ [FIX] Partner mismatch detected! Repairing link: ${them.email} ➔ ${me.email}`);
+                        await User.findByIdAndUpdate(partnerId, { partnerId: userId, partnerName: me.name });
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Partnership check error:", err);
+        }
         
         // Mark all messages where I AM THE RECEIVER as seen
-        await Message.updateMany(
-            { coupleId, receiverId: userId, status: { $ne: 'seen' } },
-            { $set: { status: 'seen', seen: true, seenAt: new Date() } }
-        );
-
-        io.to(coupleId).emit('messages seen', { viewerId: userId });
+        try {
+            const updateResult = await Message.updateMany(
+                { coupleId, receiverId: userId, status: { $ne: 'seen' } },
+                { $set: { status: 'seen', seen: true, seenAt: new Date() } }
+            );
+            
+            if (updateResult.modifiedCount > 0) {
+                console.log(`✅ [SYNC] Marked ${updateResult.modifiedCount} messages as SEEN for ${userId}`);
+                io.to(coupleId).emit('messages seen', { viewerId: userId });
+            }
+        } catch (err) { }
 
         const history = await Message.find({ coupleId }).sort({ timestamp: 1 }).limit(100);
         socket.emit('load messages', history);
@@ -1393,6 +1425,13 @@ io.on('connection', async (socket) => {
     socket.on('chat message', async (msg) => {
         const { userId, partnerId, text, type, userName, tempId } = msg;
         const coupleId = [userId, partnerId].sort().join('_');
+
+        console.log(`📩 [CHAT] From: ${userName} (${userId}) to Room: ${coupleId}. Type: ${type}`);
+
+        if (!userId || !partnerId) {
+            console.warn(`⚠️ [CHAT] Rejected message: Missing userId or partnerId.`);
+            return;
+        }
 
         let status = 'sent';
         const clients = io.sockets.adapter.rooms.get(coupleId);
@@ -1419,8 +1458,10 @@ io.on('connection', async (socket) => {
             senderId: userId,
             status: status,
             timestamp: newMsg.timestamp,
-            tempId: tempId // Return tempId to sender
+            tempId: tempId
         });
+
+        console.log(`✅ [CHAT] Broadcasted to room ${coupleId}. Status: ${status}`);
     });
 
     socket.on('typing', (data) => {
