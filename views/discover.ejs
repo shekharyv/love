@@ -270,18 +270,32 @@
         let userLocation = { lat: null, lng: null };
         const cardStack = document.getElementById('card-stack');
 
-        // Capture Geolocation early
+        // Capture Geolocation early with timeout
         function initLocation() {
+            let locationTimedOut = false;
+            const locationTimeout = setTimeout(() => {
+                locationTimedOut = true;
+                console.warn("Location request timed out. Loading users globally...");
+                loadUsers();
+            }, 3000); // 3 seconds timeout
+
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((pos) => {
+                    if (locationTimedOut) return;
+                    clearTimeout(locationTimeout);
                     userLocation.lat = pos.coords.latitude;
                     userLocation.lng = pos.coords.longitude;
-                    loadUsers(); // Initial load with location
+                    loadUsers(); 
                 }, (err) => {
-                    console.warn("Location denied:", err.message);
-                    loadUsers(); // Fallback without location
-                });
-            } else { loadUsers(); }
+                    if (locationTimedOut) return;
+                    clearTimeout(locationTimeout);
+                    console.warn("Location denied/failed:", err.message);
+                    loadUsers(); 
+                }, { timeout: 5000 });
+            } else { 
+                clearTimeout(locationTimeout);
+                loadUsers(); 
+            }
         }
 
         async function loadUsers(distance = 50) {

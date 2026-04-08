@@ -277,16 +277,29 @@ app.get('/api/discover/users', checkAuth, async (req, res) => {
                 location: { type: 'Point', coordinates: [longitude, latitude] }
             });
 
-            query.location = {
-                $near: {
-                    $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                    $maxDistance: parseInt(distance) * 1000 // Convert km to meters
-                }
-            };
+            try {
+                query.location = {
+                    $near: {
+                        $geometry: { type: "Point", coordinates: [longitude, latitude] },
+                        $maxDistance: parseInt(distance) * 1000 // Convert km to meters
+                    }
+                };
+            } catch (geoErr) {
+                console.warn("Geospatial error, falling back to normal search:", geoErr.message);
+                delete query.location;
+            }
         }
 
-        const users = await User.find(query).limit(20);
-        console.log(`[DISCOVER] Found ${users.length} partners within ${distance}km`);
+        let users = await User.find(query).limit(20);
+
+        // Fallback: If no users found within distance, show any single users (Global search)
+        if (users.length === 0 && query.location) {
+            console.log(`[DISCOVER] No users within ${distance}km, falling back to global.`);
+            delete query.location;
+            users = await User.find(query).limit(20);
+        }
+
+        console.log(`[DISCOVER] Returning ${users.length} potential partners.`);
         res.json(users);
     } catch (e) { 
         console.error("Discover API Error:", e);
