@@ -79,155 +79,23 @@
             filter: drop-shadow(0 0 8px rgba(225, 29, 72, 0.5));
         }
 
-        .heart {
-            position: absolute;
-            color: rgba(225, 29, 72, 0.2);
-            pointer-events: none;
-            z-index: 0;
-            animation: rise 10s infinite linear;
-        }
 
-        @keyframes rise {
-            0% {
-                transform: translateY(110vh) scale(0.5);
-                opacity: 0;
-            }
-
-            50% {
-                opacity: 1;
-            }
-
-            100% {
-                transform: translateY(-10vh) scale(1.2);
-                opacity: 0;
-            }
-        }
-
-        /* --- SYNC SUCCESS ANIMATION --- */
-        .sync-success-overlay {
-            position: fixed;
-            inset: 0;
-            background: #0a0514;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.5s ease;
-        }
-
-        .sync-success-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .heart-merge {
-            position: relative;
-            width: 200px;
-            height: 200px;
-        }
-
-        .merging-heart {
-            position: absolute;
-            font-size: 80px;
-            color: #E11D48;
-            filter: drop-shadow(0 0 20px rgba(225, 29, 72, 0.5));
-        }
-
-        .heart-left { left: 0; animation: mergeLeft 2s infinite ease-in-out; }
-        .heart-right { right: 0; animation: mergeRight 2s infinite ease-in-out; }
-
-        @keyframes mergeLeft {
-            0% { transform: translateX(0); opacity: 0.5; }
-            50% { transform: translateX(40px); opacity: 1; }
-            100% { transform: translateX(0); opacity: 0.5; }
-        }
-        @keyframes mergeRight {
-            0% { transform: translateX(0); opacity: 0.5; }
-            50% { transform: translateX(-40px); opacity: 1; }
-            100% { transform: translateX(0); opacity: 0.5; }
-        }
-
-        .pulse-burst {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 100px;
-            height: 100px;
-            background: rgba(225, 29, 72, 0.3);
-            border-radius: 50%;
-            z-index: -1;
-            animation: pulseBurst 2s infinite;
-        }
-
-        @keyframes pulseBurst {
-            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(4); opacity: 0; }
-        }
     </style>
 </head>
 
 <body class="min-h-screen pb-40">
-    <div id="heart-container" class="fixed inset-0 pointer-events-none z-0"></div>
-
-    <div id="syncSection" class="<%= user.partnerId ? 'hidden' : '' %> fixed inset-0 grid place-items-center p-6 animate-in fade-in zoom-in duration-500 z-[200] bg-[#0a0514]">
-        <div class="w-full max-w-xl p-10 glass-card premium-glow relative overflow-hidden">
-            <% if (user.partnerId) { %>
-                <button onclick="hideSyncSection()" class="absolute top-6 left-6 text-gray-500 hover:text-white transition-all text-xs font-black uppercase tracking-widest">
-                    <i class="fas fa-arrow-left mr-2"></i> Back
-                </button>
-            <% } %>
-            <h2 class="text-3xl font-black text-white text-center mb-10 italic mt-4">Connect with your partner <span
-                    class="text-brand-pink text-4xl">❤️</span></h2>
-            <div class="mb-10 text-center">
-                <p class="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] mb-6">Your Secret Love Code</p>
-                <div class="relative group max-w-sm mx-auto">
-                    <div class="flex items-center justify-between p-2 pl-8 glass-card bg-black/40 border-white/10 group-hover:border-brand-pink/30 transition-all duration-500">
-                        <span id="myCode" class="text-3xl font-black text-white tracking-[0.3em] italic uppercase truncate">------</span>
-                        <button onclick="copyCode()" id="copyBtn" class="w-14 h-14 bg-brand-pink rounded-3xl flex items-center justify-center text-white text-xl shadow-lg shadow-brand-pink/20 hover:scale-105 active:scale-95 transition-all">
-                            <i class="far fa-copy"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div id="connectBox">
-                <p class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-4 ml-4">Enter Partner Code
-                    💌</p>
-                <input id="partnerCode" type="text" placeholder="E.G. KO51VX" maxlength="6"
-                    class="w-full p-6 text-center rounded-[2rem] bg-black/40 text-white border-2 border-white/5 text-2xl font-black tracking-[0.3em] uppercase focus:border-brand-pink transition-all outline-none" />
-                <button id="connect-btn" onclick="connectPartner()"
-                    class="w-full mt-8 py-6 rounded-[2rem] bg-gradient-to-r from-brand-pink to-purple-600 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-brand-pink/20 hover:scale-[1.02] active:scale-95 transition-all">Connect
-                    Now ❤️</button>
-                <p id="statusText" class="text-center text-red-400 mt-6 text-[10px] font-black tracking-widest h-4"></p>
-            </div>
-        </div>
-    </div>
-
-    <!-- SYNC SUCCESS OVERLAY -->
-    <div id="syncSuccessScreen" class="sync-success-overlay">
-        <div class="heart-merge">
-            <i class="fas fa-heart merging-heart heart-left"></i>
-            <i class="fas fa-heart merging-heart heart-right"></i>
-            <div class="pulse-burst"></div>
-        </div>
-        <h2 class="text-4xl font-black italic mt-10 tracking-tighter animate-bounce">LOVE SYNCED! ❤️</h2>
-        <p class="text-gray-400 font-black uppercase tracking-[0.4em] text-[10px] mt-4">Connecting your hearts together...</p>
-    </div>
 
     <!-- MASTER PROFILE DASHBOARD -->
     <div id="profileSection"
-        class="<%= user.partnerId ? '' : 'hidden' %> w-full max-w-2xl mx-auto px-6 py-10 space-y-10 relative z-10">
+        class="w-full max-w-2xl mx-auto px-6 py-10 space-y-10 relative z-10">
 
         <!-- HEADER -->
         <header class="flex items-center justify-between">
-            <button onclick="window.history.back()" class="w-12 h-12 glass-card flex items-center justify-center"><i
+            <button onclick="window.history.back()" class="w-12 h-12 glass-card flex items-center justify-center transition-all active:scale-95"><i
                     class="fas fa-chevron-left"></i></button>
-            <h1 class="font-black text-xl italic tracking-tight">Your Profile ❤️</h1>
+            <h1 class="font-black text-xl italic tracking-tight uppercase">Dashboard ❤️</h1>
             <button onclick="toggleSettings()"
-                class="w-12 h-12 glass-card flex items-center justify-center text-gray-400"><i
+                class="w-12 h-12 glass-card flex items-center justify-center text-gray-400 transition-all active:scale-95"><i
                     class="fas fa-cog"></i></button>
         </header>
 
@@ -237,22 +105,26 @@
                 <div
                     class="absolute inset-0 bg-gradient-to-r from-brand-pink to-purple-600 rounded-full animate-pulse blur-xl opacity-40">
                 </div>
-                <img id="mainAvatar" src="/images/partner-avatar.png"
+                <img id="mainAvatar" src="<%= user.avatar || '/images/partner-avatar.png' %>"
                     class="w-full h-full rounded-full border-4 border-white/10 object-cover relative z-10">
+                <% if(user.partnerId) { %>
                 <div
                     class="absolute -bottom-2 -right-2 w-10 h-10 bg-brand-pink rounded-2xl flex items-center justify-center border-4 border-[#0a0514] z-20">
                     <i class="fas fa-heart text-white text-xs"></i>
                 </div>
+                <% } %>
             </div>
             <h2 class="text-4xl font-black tracking-tighter italic mb-2">
-                <%= user.name %> ❤️
+                <%= user.name %>
             </h2>
-            <p class="text-brand-pink font-black text-xs uppercase tracking-[0.2em] mb-4">With <%= user.partnerName %>
-                    💑</p>
+            <p class="text-brand-pink font-black text-[10px] uppercase tracking-[0.2em] mb-4">
+                <%= user.partnerId ? 'With ' + user.partnerName + ' 💑' : 'Discovering Love ❤️' %>
+            </p>
             <div class="inline-flex items-center space-x-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
                 <i class="far fa-calendar-alt text-[10px] text-gray-500"></i>
-                <span class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Together for <%= user.streak %> Days
-                    ❤️</span>
+                <span class="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                    <%= user.partnerId ? 'Together for ' + (user.streak || 0) + ' Days' : 'Single & Awesome' %>
+                </span>
             </div>
             <button onclick="window.location.href='/edit-profile'"
                 class="block mt-8 mx-auto px-8 py-3 bg-white text-black rounded-full font-black text-[10px] uppercase tracking-widest hover:scale-110 active:scale-95 transition-all">Edit
@@ -339,7 +211,9 @@
                 <div class="glass-card p-6 flex items-center justify-between">
                     <div>
                         <p class="text-[9px] font-black text-gray-500 uppercase mb-1">Total Snaps</p>
-                        <h5 class="text-lg font-black italic"><%= user.loveScore * 2 %> Snaps 📸</h5>
+                        <h5 class="text-lg font-black italic">
+                            <%= user.loveScore * 2 %> Snaps 📸
+                        </h5>
                     </div>
                 </div>
                 <div class="glass-card p-6 flex items-center justify-between">
@@ -366,7 +240,9 @@
                         <div class="w-2 h-2 bg-brand-pink rounded-full ring-8 ring-brand-pink/10"></div>
                         <div>
                             <p class="font-black text-sm italic">First Snap Sent ❤️</p>
-                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest"><%= user.streak %> Days ago</p>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                                <%= user.streak %> Days ago
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -395,13 +271,13 @@
         <section class="space-y-6">
             <h4 class="font-black text-xs uppercase tracking-widest ml-4">Preferences & Bond 🔄</h4>
             <div class="glass-card overflow-hidden divide-y divide-white/5">
-                <button onclick="showSyncSection()" id="change-partner-btn" class="w-full p-6 flex items-center justify-between hover:bg-white/5 transition-all text-left cursor-pointer active:scale-95 outline-none border-none">
+                <div class="p-6 flex items-center justify-between hover:bg-white/5 transition-all text-left">
                     <div class="flex items-center space-x-4">
-                        <i class="fas fa-sync text-orange-400"></i>
-                        <span class="text-sm font-bold">Change Partner</span>
+                        <i class="fas fa-heart text-brand-pink"></i>
+                        <span class="text-sm font-bold capitalize">Bond Status</span>
                     </div>
-                    <i class="fas fa-chevron-right text-[10px] text-gray-600"></i>
-                </button>
+                    <span class="text-[10px] font-black uppercase text-brand-pink tracking-widest"><%= user.partnerId ? 'Connected ❤️' : 'Searching... 🕵️‍♂️' %></span>
+                </div>
                 <div class="p-6 flex items-center justify-between hover:bg-white/5 transition-all text-left">
                     <div class="flex items-center space-x-4">
                         <i class="fas fa-bell text-blue-400"></i>
@@ -535,129 +411,12 @@
             document.body.appendChild(overlay);
         }
 
-        // --- FLOATING HEARTS ---
-        const container = document.getElementById('heart-container');
-        function createHeart() {
-            const heart = document.createElement('div'); heart.classList.add('heart');
-            heart.innerHTML = '<i class="fas fa-heart"></i>';
-            heart.style.left = Math.random() * 100 + 'vw';
-            heart.style.fontSize = Math.random() * 10 + 10 + 'px';
-            heart.style.animationDuration = Math.random() * 5 + 5 + 's';
-            container.appendChild(heart);
-            setTimeout(() => heart.remove(), 10000);
-        }
-        function vibrateDevice() {
-            if (navigator.vibrate) navigator.vibrate(50);
-        }
-
-        setInterval(createHeart, 1000);
-
-        function showToast(msg) {
-            const toast = document.createElement('div');
-            toast.className = "fixed top-12 left-1/2 -translate-x-1/2 px-8 py-4 bg-white/10 backdrop-blur-2xl border border-white/20 text-white font-black uppercase text-[10px] tracking-widest rounded-full z-[100] animate-in slide-in-from-top duration-300";
-            toast.innerText = msg;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
-
-        async function loadPartnerInfo() {
-            loadGallery();
-            try {
-                const resCode = await fetch('/api/my-code');
-                const dataCode = await resCode.json();
-                document.getElementById('myCode').innerText = dataCode.code;
-            } catch (err) { console.error(err); }
-        }
-
-        async function connectPartner() {
-            const codeInput = document.getElementById("partnerCode");
-            const code = codeInput.value.trim().toUpperCase();
-            if (!code) return;
-            const btn = document.getElementById('connect-btn');
-            const status = document.getElementById("statusText");
-            btn.disabled = true; btn.innerHTML = `<i class="fas fa-heart animate-ping mr-2"></i> Syncing...`;
-            try {
-                const res = await fetch("/api/connect-partner", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
-                const data = await res.json();
-                if (data.success) {
-                    if (data.status === 'connected') {
-                        vibrateDevice();
-                        showSyncSuccess(); // 🔥 Start Animation
-                    } else {
-                        status.classList.replace('text-red-400', 'text-blue-400');
-                        status.innerText = "Request Sent! Waiting... ❤️";
-                    }
-                } else {
-                    status.innerText = data.error || "Invalid Code! ❌";
-                    btn.disabled = false; btn.innerHTML = "Connect Now ❤️";
-                }
-            } catch (err) { btn.disabled = false; btn.innerHTML = "Connect Now ❤️"; }
-        }
-
-        function showSyncSuccess() {
-            const screen = document.getElementById('syncSuccessScreen');
-            screen.classList.add('active');
-            
-            // Generate some explosion hearts
-            for(let i=0; i<30; i++) {
-                setTimeout(() => {
-                    const heart = document.createElement('div');
-                    heart.className = "heart";
-                    heart.style.left = "50vw";
-                    heart.style.top = "50vh";
-                    heart.style.color = "#E11D48";
-                    heart.style.fontSize = "20px";
-                    heart.innerHTML = '<i class="fas fa-heart"></i>';
-                    heart.animate([
-                        { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
-                        { transform: `translate(${(Math.random()-0.5)*100}vw, ${(Math.random()-0.5)*100}vh) scale(2) rotate(${Math.random()*360}deg)`, opacity: 0 }
-                    ], { duration: 2000, easing: 'ease-out' });
-                    screen.appendChild(heart);
-                    setTimeout(() => heart.remove(), 2000);
-                }, i * 50);
-            }
-
-            setTimeout(() => {
-                window.location.href = '/home';
-            }, 4000);
-        }
-
-        function copyCode() {
-            const code = document.getElementById("myCode").innerText;
-            if (code === "------") return;
-            navigator.clipboard.writeText(code);
-            vibrateDevice();
-            
-            const btn = document.getElementById('copyBtn');
-            const icon = btn.querySelector('i');
-            icon.className = "fas fa-check"; // Success icon
-            showToast("Love Code Copied! ❤️");
-            
-            setTimeout(() => {
-                icon.className = "far fa-copy"; // Revert icon
-            }, 2000);
-        }
 
         function toggleSettings() {
             showToast("Settings coming soon! ⚙️");
         }
 
-        function showSyncSection() {
-            vibrateDevice();
-            document.getElementById('profileSection').classList.add('hidden');
-            document.getElementById('syncSection').classList.remove('hidden');
-            document.getElementById('partnerCode').focus();
-            showToast("Switching to Sync Mode... ❤️");
-        }
-
-        function hideSyncSection() {
-            vibrateDevice();
-            console.log("Closing Sync Section...");
-            document.getElementById('syncSection').classList.add('hidden');
-            document.getElementById('profileSection').classList.remove('hidden');
-        }
-
-        window.onload = loadPartnerInfo;
+        window.onload = loadGallery;
     </script>
 </body>
 

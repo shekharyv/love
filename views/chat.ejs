@@ -175,6 +175,63 @@
 </head>
 
 <body class="bg-[#0a0514] text-white flex flex-col h-screen overflow-hidden font-sans">
+    <!-- Premium Pairing Gateway Modal -->
+    <div id="sync-gateway"
+        class="<%= user.partnerId ? 'hidden' : '' %> fixed inset-0 z-[10000] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4">
+        <div
+            class="w-full max-w-[420px] bg-[#111111] rounded-[48px] p-6 sm:p-10 flex flex-col items-center text-center relative border border-white/5 shadow-2xl overflow-y-auto max-h-[95vh]">
+            
+            <!-- Modal Header Actions -->
+            <div class="w-full flex items-center justify-between mb-8">
+                <button onclick="window.location.href='/logout'"
+                    class="text-gray-500 hover:text-white flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest transition-all">
+                    <i class="fas fa-sign-out-alt rotate-180"></i>
+                    <span>Logout</span>
+                </button>
+                <button onclick="window.location.href='/home'"
+                    class="text-gray-500 hover:text-white text-lg transition-all">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Decorative Center Icon -->
+            <div class="w-16 h-16 sm:w-20 sm:h-20 bg-brand-pink/10 rounded-3xl flex items-center justify-center text-brand-pink mb-6">
+                <i class="fas fa-link text-2xl sm:text-3xl"></i>
+            </div>
+
+            <!-- Title & Info -->
+            <h1 class="text-3xl sm:text-4xl font-black text-white mb-2 tracking-tight italic">Connect <span
+                    class="text-brand-pink text-2xl sm:text-3xl not-italic">💗</span></h1>
+            <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest leading-relaxed px-4">Both users must enter
+                codes <br> to finish pairing.</p>
+
+            <!-- Your Love Code Section -->
+            <div class="w-full mt-8">
+                <p class="text-[9px] font-black text-brand-pink uppercase tracking-widest mb-4">Your Love Code 🎀</p>
+                <div class="bg-[#1a1a1a] rounded-[2rem] p-2 pl-6 flex items-center justify-between border border-white/5">
+                    <span id="myCode" class="text-2xl sm:text-3xl font-black italic text-white tracking-[0.2em] truncate">------</span>
+                    <button onclick="copyCode()" id="copyBtn"
+                        class="w-12 h-12 sm:w-14 sm:h-14 bg-brand-pink rounded-3xl flex items-center justify-center text-white text-lg sm:text-xl active:scale-90 transition-all shadow-lg shadow-brand-pink/20">
+                        <i class="far fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Input Section -->
+            <div class="w-full mt-8">
+                <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-4">Enter Partner Code</p>
+                <input id="partnerCode" type="text" placeholder="ABC123" maxlength="6"
+                    class="w-full bg-[#1a1a1a] rounded-[2rem] p-5 sm:p-6 text-center text-2xl sm:text-3xl font-black italic uppercase tracking-[0.2em] text-white border border-white/5 focus:border-brand-pink focus:outline-none transition-all placeholder:text-gray-800" />
+            </div>
+
+            <!-- Connect Button -->
+            <button id="connect-btn" onclick="connectPartner()"
+                class="w-full mt-8 py-5 sm:py-6 bg-brand-pink rounded-[24px] sm:rounded-[32px] font-black text-xs uppercase tracking-[0.3em] text-white shadow-xl shadow-brand-pink/20 hover:scale-[1.02] active:scale-95 transition-all">
+                Connect 💗
+            </button>
+            <p id="statusText" class="mt-4 text-[9px] font-black tracking-widest text-red-400 h-4"></p>
+        </div>
+    </div>
 
     <!-- Animated Heart Background -->
     <div id="heart-container" class="fixed inset-0 overflow-hidden pointer-events-none z-0"></div>
@@ -189,50 +246,66 @@
                     <img src="/images/partner-avatar.png" alt="Partner"
                         class="w-12 h-12 rounded-full border-2 border-brand-pink p-0.5">
                     <div id="online-indicator"
-                        class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0a0514]"></div>
+                        class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0a0514]">
+                    </div>
                 </div>
                 <div>
-                    <h3 class="font-bold text-sm tracking-tight"><span id="header-partner-name"><%= user.partnerName || "Partner" %></span> ❤️</h3>
-                    <p id="status-text" class="text-[10px] font-black text-green-400 uppercase tracking-widest">Online</p>
+                    <h3 class="font-bold text-sm tracking-tight"><span id="header-partner-name">
+                            <%= user.partnerName || "Partner" %>
+                        </span> ❤️</h3>
+                    <p id="status-text" class="text-[10px] font-black text-green-400 uppercase tracking-widest">Online
+                    </p>
                 </div>
             </div>
             <div class="flex items-center space-x-2 text-gray-400">
                 <!-- --- GHOST MODE TOGGLE --- -->
-                <button id="ghost-toggle" onclick="toggleGhostMode()" 
+                <button id="ghost-toggle" onclick="toggleGhostMode()"
                     class="p-2.5 rounded-full transition-all group relative <%= user.ghostMode ? 'text-brand-pink bg-brand-pink/10 animate-pulse' : 'hover:bg-white/5 hover:text-white' %>"
                     title="Toggle Invisible Mode">
                     <i class="fas fa-user-secret text-lg"></i>
-                    <span id="ghost-status-dot" class="absolute top-1 right-1 w-2 h-2 rounded-full <%= user.ghostMode ? 'bg-brand-pink shadow-[0_0_8px_#ff007f]' : 'bg-gray-600' %>"></span>
+                    <span id="ghost-status-dot"
+                        class="absolute top-1 right-1 w-2 h-2 rounded-full <%= user.ghostMode ? 'bg-brand-pink shadow-[0_0_8px_#ff007f]' : 'bg-gray-600' %>"></span>
                 </button>
-                
-                <button onclick="initiateCall('video')" class="p-2.5 hover:bg-white/5 rounded-full hover:text-brand-pink transition-all"><i
+
+                <button onclick="initiateCall('video')"
+                    class="p-2.5 hover:bg-white/5 rounded-full hover:text-brand-pink transition-all"><i
                         class="fas fa-video text-lg"></i></button>
-                <button onclick="initiateCall('voice')" class="p-2.5 hover:bg-white/5 rounded-full hover:text-brand-pink transition-all"><i
+                <button onclick="initiateCall('voice')"
+                    class="p-2.5 hover:bg-white/5 rounded-full hover:text-brand-pink transition-all"><i
                         class="fas fa-phone-alt text-lg"></i></button>
                 <button class="p-2.5 hover:bg-white/5 rounded-full hover:text-white transition-all"><i
                         class="fas fa-ellipsis-v"></i></button>
             </div>
         </div>
         <!-- --- OFFLINE SYNC NOTIFICATION --- -->
-        <div id="offline-bar" class="hidden bg-orange-600/20 py-1.5 px-4 rounded-xl border border-orange-500/20 flex items-center justify-center space-x-2 animate-pulse overflow-hidden">
-             <i class="fas fa-cloud-slash text-[10px] text-orange-400"></i>
-             <span class="text-[8px] font-black text-white/80 uppercase tracking-[0.2em]">Sync Active: Messages will send when online 🕒</span>
+        <div id="offline-bar"
+            class="hidden bg-orange-600/20 py-1.5 px-4 rounded-xl border border-orange-500/20 flex items-center justify-center space-x-2 animate-pulse overflow-hidden">
+            <i class="fas fa-cloud-slash text-[10px] text-orange-400"></i>
+            <span class="text-[8px] font-black text-white/80 uppercase tracking-[0.2em]">Sync Active: Messages will send
+                when online 🕒</span>
         </div>
     </header>
 
     <!-- WhatsApp-Style Call Overlay UI -->
     <div id="call-overlay"
         class="fixed inset-0 z-[100] hidden bg-[#05020a] flex flex-col items-center justify-between p-0 animate-in fade-in zoom-in duration-300">
-        
+
         <!-- Remote Video (Full Screen) -->
         <div id="remote-video-wrapper" class="absolute inset-0 w-full h-full overflow-hidden">
-            <video id="remote-video" autoplay playsinline class="w-full h-full object-cover transition-all duration-500"></video>
+            <video id="remote-video" autoplay playsinline
+                class="w-full h-full object-cover transition-all duration-500"></video>
             <!-- Network Indicator & Timer Row -->
             <div class="absolute top-12 left-0 right-0 z-20 flex flex-col items-center">
-                <div id="call-timer" class="hidden bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black tracking-widest text-white border border-white/10 mb-2">00:00</div>
-                <h2 id="calling-status" class="text-white text-3xl font-extrabold tracking-tighter uppercase drop-shadow-2xl">Connecting...</h2>
+                <div id="call-timer"
+                    class="hidden bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black tracking-widest text-white border border-white/10 mb-2">
+                    00:00</div>
+                <h2 id="calling-status"
+                    class="text-white text-3xl font-extrabold tracking-tighter uppercase drop-shadow-2xl">Connecting...
+                </h2>
                 <div class="flex items-center space-x-2 mt-2">
-                    <p class="text-brand-pink text-[10px] font-black uppercase tracking-[0.4em]"><%= user.partnerName || "Partner" %></p>
+                    <p class="text-brand-pink text-[10px] font-black uppercase tracking-[0.4em]">
+                        <%= user.partnerName || "Partner" %>
+                    </p>
                     <div id="network-status" class="flex space-x-0.5 items-end h-3">
                         <div class="w-0.5 h-1 bg-white/40 rounded-full"></div>
                         <div class="w-0.5 h-2 bg-white/40 rounded-full"></div>
@@ -246,57 +319,77 @@
         <div id="local-video-container"
             class="absolute top-8 right-6 w-32 h-44 rounded-3xl overflow-hidden border-2 border-white/20 shadow-2xl z-30 bg-black/40 backdrop-blur-md transition-all duration-500 hover:scale-105 active:scale-95 group">
             <video id="local-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
-            <div class="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded-full p-1"><i class="fas fa-expand text-[8px]"></i></div>
-        </div>
-
-            <!-- WhatsApp-Style Bottom Bar -->
-            <div class="flex justify-center space-x-3 mb-10 overflow-x-auto no-scrollbar py-2">
-                <button onclick="applyCallFilter('none')" class="flex-shrink-0 w-11 h-11 rounded-full border border-white/10 bg-white/5 flex items-center justify-center text-xs hover:bg-white/20 transition-all"><i class="fas fa-slash"></i></button>
-                <button onclick="applyCallFilter('soft')" class="flex-shrink-0 w-11 h-11 rounded-full border border-pink-500/20 bg-pink-500/5 flex items-center justify-center text-xs hover:bg-pink-500/20 transition-all"><i class="fas fa-magic text-pink-400"></i></button>
-                <button onclick="applyCallFilter('bw')" class="flex-shrink-0 w-11 h-11 rounded-full border border-gray-400/20 bg-gray-400/5 flex items-center justify-center text-xs hover:bg-gray-400/20 transition-all"><i class="fas fa-moon"></i></button>
-                <button onclick="applyCallFilter('blur')" class="flex-shrink-0 w-11 h-11 rounded-full border border-purple-500/20 bg-purple-500/5 flex items-center justify-center text-xs hover:bg-purple-500/20 transition-all"><i class="fas fa-eye-slash text-purple-400"></i></button>
-            </div>
-
-            <!-- Main Controls -->
-            <div class="flex items-center justify-around max-w-sm mx-auto">
-                <button onclick="toggleMic()" id="mic-btn"
-                    class="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xl text-white transition-all hover:bg-white/20 active:scale-90">
-                    <i class="fas fa-microphone"></i>
-                </button>
-                
-                <button onclick="toggleVideo()" id="video-btn"
-                    class="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xl text-white transition-all hover:bg-white/20 active:scale-90">
-                    <i class="fas fa-video"></i>
-                </button>
-
-                <button onclick="switchCamera()" id="switch-camera-btn"
-                    class="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xl text-white transition-all hover:bg-white/20 active:scale-90">
-                    <i class="fas fa-camera-rotate"></i>
-                </button>
-
-                <button onclick="hangupCall()"
-                    class="w-18 h-18 rounded-[2rem] bg-red-600 flex items-center justify-center text-3xl shadow-[0_15px_30px_rgba(220,38,38,0.4)] transition-all hover:scale-110 active:scale-75 text-white ring-4 ring-white/10">
-                    <i class="fas fa-phone-slash"></i>
-                </button>
+            <div
+                class="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded-full p-1">
+                <i class="fas fa-expand text-[8px]"></i>
             </div>
         </div>
 
+        <!-- WhatsApp-Style Bottom Bar -->
+        <div class="flex justify-center space-x-3 mb-10 overflow-x-auto no-scrollbar py-2">
+            <button onclick="applyCallFilter('none')"
+                class="flex-shrink-0 w-11 h-11 rounded-full border border-white/10 bg-white/5 flex items-center justify-center text-xs hover:bg-white/20 transition-all"><i
+                    class="fas fa-slash"></i></button>
+            <button onclick="applyCallFilter('soft')"
+                class="flex-shrink-0 w-11 h-11 rounded-full border border-pink-500/20 bg-pink-500/5 flex items-center justify-center text-xs hover:bg-pink-500/20 transition-all"><i
+                    class="fas fa-magic text-pink-400"></i></button>
+            <button onclick="applyCallFilter('bw')"
+                class="flex-shrink-0 w-11 h-11 rounded-full border border-gray-400/20 bg-gray-400/5 flex items-center justify-center text-xs hover:bg-gray-400/20 transition-all"><i
+                    class="fas fa-moon"></i></button>
+            <button onclick="applyCallFilter('blur')"
+                class="flex-shrink-0 w-11 h-11 rounded-full border border-purple-500/20 bg-purple-500/5 flex items-center justify-center text-xs hover:bg-purple-500/20 transition-all"><i
+                    class="fas fa-eye-slash text-purple-400"></i></button>
+        </div>
+
+        <!-- Main Controls -->
+        <div class="flex items-center justify-around max-w-sm mx-auto">
+            <button onclick="toggleMic()" id="mic-btn"
+                class="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xl text-white transition-all hover:bg-white/20 active:scale-90">
+                <i class="fas fa-microphone"></i>
+            </button>
+
+            <button onclick="toggleVideo()" id="video-btn"
+                class="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xl text-white transition-all hover:bg-white/20 active:scale-90">
+                <i class="fas fa-video"></i>
+            </button>
+
+            <button onclick="switchCamera()" id="switch-camera-btn"
+                class="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xl text-white transition-all hover:bg-white/20 active:scale-90">
+                <i class="fas fa-camera-rotate"></i>
+            </button>
+
+            <button onclick="hangupCall()"
+                class="w-18 h-18 rounded-[2rem] bg-red-600 flex items-center justify-center text-3xl shadow-[0_15px_30px_rgba(220,38,38,0.4)] transition-all hover:scale-110 active:scale-75 text-white ring-4 ring-white/10">
+                <i class="fas fa-phone-slash"></i>
+            </button>
         </div>
     </div>
 
+    </div>
+    </div>
+
     <!-- Incoming Call Top Drawer (GLOBAL SCOPE) -->
-    <div id="incoming-call-box" class="hidden fixed top-10 left-4 right-4 bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[2rem] p-5 shadow-2xl animate-in slide-in-from-top duration-1000 z-[1000]">
+    <div id="incoming-call-box"
+        class="hidden fixed top-10 left-4 right-4 bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[2rem] p-5 shadow-2xl animate-in slide-in-from-top duration-1000 z-[1000]">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
-                <img src="/images/partner-avatar.png" class="w-14 h-14 rounded-full border-2 border-brand-pink p-0.5 object-cover">
+                <img src="/images/partner-avatar.png"
+                    class="w-14 h-14 rounded-full border-2 border-brand-pink p-0.5 object-cover">
                 <div>
-                    <h4 id="caller-name-text" class="font-black text-lg text-white uppercase tracking-tighter">Partner</h4>
-                    <p id="call-type-label" class="text-[10px] font-black uppercase tracking-[0.3em] text-brand-pink animate-pulse">Incoming Call...</p>
+                    <h4 id="caller-name-text" class="font-black text-lg text-white uppercase tracking-tighter">Partner
+                    </h4>
+                    <p id="call-type-label"
+                        class="text-[10px] font-black uppercase tracking-[0.3em] text-brand-pink animate-pulse">Incoming
+                        Call...</p>
                 </div>
             </div>
             <div class="flex space-x-3">
-                <button onclick="rejectCall()" class="w-12 h-12 bg-red-600/20 border border-red-600/30 rounded-full flex items-center justify-center text-red-500 text-lg transition-all active:scale-90"><i class="fas fa-times"></i></button>
-                <button onclick="acceptCall()" class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white text-lg shadow-lg shadow-green-500/20 transition-all active:scale-90"><i class="fas fa-check"></i></button>
+                <button onclick="rejectCall()"
+                    class="w-12 h-12 bg-red-600/20 border border-red-600/30 rounded-full flex items-center justify-center text-red-500 text-lg transition-all active:scale-90"><i
+                        class="fas fa-times"></i></button>
+                <button onclick="acceptCall()"
+                    class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white text-lg shadow-lg shadow-green-500/20 transition-all active:scale-90"><i
+                        class="fas fa-check"></i></button>
             </div>
         </div>
     </div>
@@ -309,7 +402,8 @@
         <!-- Welcome Card -->
         <div class="mx-auto w-full max-w-[90%] md:max-w-xs text-center space-y-4 mb-4">
             <div class="glass-input p-5 md:p-6 rounded-3xl border-brand-pink/20">
-                <div class="w-10 h-10 bg-brand-pink/20 rounded-full mx-auto flex items-center justify-center text-brand-pink mb-2">
+                <div
+                    class="w-10 h-10 bg-brand-pink/20 rounded-full mx-auto flex items-center justify-center text-brand-pink mb-2">
                     <i class="fas fa-lock text-sm"></i>
                 </div>
                 <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
@@ -320,14 +414,17 @@
 
         <!-- Quiz Integration Card -->
         <div class="mx-auto w-full max-w-[95%] md:max-w-sm">
-            <div class="glass-input p-5 md:p-6 border-brand-pink/40 bg-brand-pink/5 rounded-[2rem] relative overflow-hidden group">
+            <div
+                class="glass-input p-5 md:p-6 border-brand-pink/40 bg-brand-pink/5 rounded-[2rem] relative overflow-hidden group">
                 <div class="absolute -top-10 -right-10 w-24 h-24 bg-brand-pink/10 blur-2xl"></div>
                 <div class="flex items-center space-x-4 mb-5">
-                    <div class="w-10 h-10 flex-shrink-0 bg-brand-pink/20 rounded-xl flex items-center justify-center text-brand-pink border border-brand-pink/30">
+                    <div
+                        class="w-10 h-10 flex-shrink-0 bg-brand-pink/20 rounded-xl flex items-center justify-center text-brand-pink border border-brand-pink/30">
                         <i class="fas fa-brain"></i>
                     </div>
                     <div>
-                        <h4 class="font-black text-xs md:text-sm text-white uppercase tracking-wider">Tonight’s Quiz ❤️</h4>
+                        <h4 class="font-black text-xs md:text-sm text-white uppercase tracking-wider">Tonight’s Quiz ❤️
+                        </h4>
                         <p class="text-[9px] text-gray-500 font-bold uppercase">Ready to Play</p>
                     </div>
                 </div>
@@ -375,31 +472,37 @@
         <!-- Input Outer Shell -->
         <div class="max-w-4xl mx-auto space-y-4">
 
-        <!-- Quick Love Actions -->
-        <div class="flex justify-center space-x-2 md:space-x-3 overflow-x-auto no-scrollbar py-2">
-            <button onclick="sendQuickLove('❤️ MISS YOU')"
-                class="flex-shrink-0 bg-white/5 border border-white/10 px-3 md:px-5 py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase text-brand-pink hover:bg-brand-pink hover:text-white transition-all">❤️ Miss you</button>
-            <button onclick="sendQuickLove('😘 KISS')"
-                class="flex-shrink-0 bg-white/5 border border-white/10 px-3 md:px-5 py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase text-brand-pink hover:bg-brand-pink hover:text-white transition-all">😘 Kiss</button>
-            <button onclick="sendQuickLove('🤗 HUG')"
-                class="flex-shrink-0 bg-white/5 border border-white/10 px-3 md:px-5 py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase text-brand-pink hover:bg-brand-pink hover:text-white transition-all">🤗 Hug</button>
-        </div>
+            <!-- Quick Love Actions -->
+            <div class="flex justify-center space-x-2 md:space-x-3 overflow-x-auto no-scrollbar py-2">
+                <button onclick="sendQuickLove('❤️ MISS YOU')"
+                    class="flex-shrink-0 bg-white/5 border border-white/10 px-3 md:px-5 py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase text-brand-pink hover:bg-brand-pink hover:text-white transition-all">❤️
+                    Miss you</button>
+                <button onclick="sendQuickLove('😘 KISS')"
+                    class="flex-shrink-0 bg-white/5 border border-white/10 px-3 md:px-5 py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase text-brand-pink hover:bg-brand-pink hover:text-white transition-all">😘
+                    Kiss</button>
+                <button onclick="sendQuickLove('🤗 HUG')"
+                    class="flex-shrink-0 bg-white/5 border border-white/10 px-3 md:px-5 py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase text-brand-pink hover:bg-brand-pink hover:text-white transition-all">🤗
+                    Hug</button>
+            </div>
 
             <!-- Real Input Area -->
             <div class="flex items-center glass-input p-1.5 rounded-full relative shadow-2xl">
-                <button class="w-10 h-10 flex-shrink-0 text-gray-400 hover:text-brand-pink transition-colors flex items-center justify-center">
+                <button
+                    class="w-10 h-10 flex-shrink-0 text-gray-400 hover:text-brand-pink transition-colors flex items-center justify-center">
                     <i class="fas fa-plus text-sm"></i>
                 </button>
-                
+
                 <input type="text" id="chatInput" placeholder="Type a message..."
                     class="bg-transparent flex-grow outline-none text-sm font-medium py-2 px-1 min-w-0">
 
                 <div class="flex items-center border-l border-white/10 px-1 space-x-0.5">
-                    <button onclick="openCamera()" class="w-10 h-10 flex-shrink-0 text-gray-400 hover:text-white transition-colors flex items-center justify-center"
+                    <button onclick="openCamera()"
+                        class="w-10 h-10 flex-shrink-0 text-gray-400 hover:text-white transition-colors flex items-center justify-center"
                         title="Send Snap"><i class="fas fa-camera text-sm"></i></button>
                     <button id="mic-btn" onmousedown="startRecording()" onmouseup="stopRecording()"
                         ontouchstart="startRecording()" ontouchend="stopRecording()"
-                        class="w-10 h-10 flex-shrink-0 text-gray-400 hover:text-white transition-colors flex items-center justify-center" title="Voice Note">
+                        class="w-10 h-10 flex-shrink-0 text-gray-400 hover:text-white transition-colors flex items-center justify-center"
+                        title="Voice Note">
                         <i class="fas fa-microphone text-sm"></i>
                     </button>
                 </div>
@@ -472,13 +575,13 @@
         const PARTNER_ID = '<%= user.partnerId || "" %>';
         // Generate stable Couple ID only if both IDs are present
         const COUPLE_ID = (USER_ID && PARTNER_ID) ? [USER_ID, PARTNER_ID].sort().join('_') : '';
-        
+
         console.log("🛠️ [CHAT DEBUG] My ID:", USER_ID);
         console.log("🛠️ [CHAT DEBUG] Partner ID:", PARTNER_ID);
         console.log("🛠️ [CHAT DEBUG] Room ID:", COUPLE_ID);
-        
+
         let lastMessageTimestamp = 0; // Optimization for message loading
-        
+
         // --- PRO CALLING ASSETS ---
         const ringtone = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
         ringtone.loop = true;
@@ -535,10 +638,63 @@
             }
         });
 
-        function initChat() {
-            console.log("💖 Initializing Chat...");
-            loadMessages();
-            scrollToBottom();
+        async function initChat() {
+            console.log("💖 [CHAT] Initializing Chat Interface...");
+            
+            // 🔥 CRITICAL: Load My Code immediately if not partnered
+            if (!PARTNER_ID || PARTNER_ID === "") {
+                console.log("📝 [SYNC] User is currently single, fetching Love Code...");
+                try {
+                    const res = await fetch('/api/my-code');
+                    const data = await res.json();
+                    if (data.code) {
+                        console.log("✅ [SYNC] Code Retrieved:", data.code);
+                        document.getElementById('myCode').innerText = data.code;
+                    }
+                } catch (e) { 
+                    console.error("❌ [SYNC] Failed to fetch code:", e);
+                }
+            } else {
+                console.log("👫 [SYNC] Partner connected. Loading private room...");
+                loadMessages();
+                scrollToBottom();
+            }
+        }
+
+        async function connectPartner() {
+            const code = document.getElementById("partnerCode").value.trim().toUpperCase();
+            if (!code) return;
+            const btn = document.getElementById('connect-btn');
+            const status = document.getElementById("statusText");
+            btn.disabled = true; btn.innerHTML = `Syncing... ❤️`;
+            try {
+                const res = await fetch("/api/connect-partner", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
+                const data = await res.json();
+                if (data.success) {
+                    if (data.status === 'connected') {
+                        vibrateDevice();
+                        btn.innerHTML = "Synced! ❤️";
+                        window.location.reload(); 
+                    } else {
+                        status.classList.replace('text-red-400', 'text-blue-400');
+                        status.innerText = "Request Sent! Waiting... ❤️";
+                    }
+                } else {
+                    status.innerText = data.error || "Invalid Code! ❌";
+                    btn.disabled = false; btn.innerHTML = "Connect 💗";
+                }
+            } catch (err) { btn.disabled = false; btn.innerHTML = "Connect 💗"; }
+        }
+
+        function copyCode() {
+            const code = document.getElementById("myCode").innerText;
+            if (code === "------") return;
+            navigator.clipboard.writeText(code);
+            vibrateDevice();
+            const btn = document.getElementById('copyBtn');
+            const icon = btn.querySelector('i');
+            icon.className = "fas fa-check";
+            setTimeout(() => { icon.className = "far fa-copy"; }, 2000);
         }
 
         // --- NEW: SEND ON ENTER ---
@@ -562,15 +718,15 @@
             }
             vibrateDevice();
             console.log(`🚀 [CALL] Dialing Partner: ${PARTNER_ID} in Room: ${COUPLE_ID}`);
-            
+
             // Show Outgoing UI
             document.getElementById('outgoing-call-modal').classList.remove('hidden');
             document.getElementById('outgoing-call-type').innerText = `Outgoing ${type} call...`;
-            
-            socket.emit('call-user', { 
-                targetId: PARTNER_ID, 
-                callerId: USER_ID,   
-                callerName: USER_NAME, 
+
+            socket.emit('call-user', {
+                targetId: PARTNER_ID,
+                callerId: USER_ID,
+                callerName: USER_NAME,
                 callType: type,
                 channelName: COUPLE_ID
             });
@@ -584,7 +740,7 @@
             document.getElementById('caller-name-text').innerText = data.callerName;
             document.getElementById('call-type-label').innerText = `Loveyapa ${data.type} call...`;
             document.getElementById('incoming-call-modal').classList.remove('hidden');
-            
+
             window.activeCallPartner = data.from;
             window.activeCallChannel = data.channelName;
             window.activeCallType = data.type;
@@ -623,24 +779,24 @@
         let isHandlingActiveCall = false;
         async function checkIncomingCall() {
             if (isHandlingActiveCall || !document.getElementById('incoming-call-modal').classList.contains('hidden')) return;
-            
+
             try {
                 const res = await fetch('/api/check-call');
                 const data = await res.json();
-                
+
                 if (data.call) {
                     // Trigger Incoming UI
                     document.getElementById('caller-name-text').innerText = data.call.callerName;
                     document.getElementById('call-type-label').innerText = `Loveyapa ${data.call.type} call...`;
                     document.getElementById('incoming-call-modal').classList.remove('hidden');
-                    
+
                     window.activeCallPartner = data.call.from;
                     window.activeCallChannel = data.call.channelName;
                     window.activeCallType = data.call.type;
-                    
-                    ringtone.play().catch(e => {});
+
+                    ringtone.play().catch(e => { });
                 }
-            } catch (e) {}
+            } catch (e) { }
         }
         setInterval(checkIncomingCall, 3000);
 
@@ -652,9 +808,9 @@
             try {
                 const res = await fetch(`/api/agora-token?channelName=${channelName}&uid=0`);
                 const { token, appId } = await res.json();
-                
+
                 await agoraClient.join(appId, channelName, token, null);
-                
+
                 localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
                 if (type === 'video') {
                     localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack();
@@ -671,10 +827,10 @@
                 // Network Quality Monitoring
                 agoraClient.on("network-quality", (quality) => {
                     const bars = document.getElementById('network-status').children;
-                    const q = quality.downlinkNetworkQuality; 
-                    for(let i=0; i<3; i++) {
-                        bars[i].className = `w-0.5 rounded-full ${i+1 <= (4-q) ? 'bg-green-500' : 'bg-white/20'}`;
-                        bars[i].style.height = `${(i+1)*4}px`;
+                    const q = quality.downlinkNetworkQuality;
+                    for (let i = 0; i < 3; i++) {
+                        bars[i].className = `w-0.5 rounded-full ${i + 1 <= (4 - q) ? 'bg-green-500' : 'bg-white/20'}`;
+                        bars[i].style.height = `${(i + 1) * 4}px`;
                     }
                 });
 
@@ -683,9 +839,9 @@
                     if (mediaType === "video") user.videoTrack.play('remote-video');
                     if (mediaType === "audio") user.audioTrack.play();
                 });
-            } catch (err) { 
+            } catch (err) {
                 console.error("Agora Error:", err);
-                hangupCall(); 
+                hangupCall();
             }
         }
 
@@ -754,9 +910,9 @@
             const remote = document.getElementById('remote-video');
             const local = document.getElementById('local-video');
             let css = 'none';
-            if(filter === 'soft') css = 'sepia(0.3) saturate(1.4) brightness(1.1)';
-            if(filter === 'bw') css = 'grayscale(1) contrast(1.2)';
-            if(filter === 'blur') css = 'blur(10px)';
+            if (filter === 'soft') css = 'sepia(0.3) saturate(1.4) brightness(1.1)';
+            if (filter === 'bw') css = 'grayscale(1) contrast(1.2)';
+            if (filter === 'blur') css = 'blur(10px)';
             remote.style.filter = css;
             local.style.filter = css;
         }
@@ -783,7 +939,7 @@
 
         socket.on('chat message', (msg) => {
             console.log("📥 [SOCKET] Received:", msg);
-            
+
             // 🛡️ DEDUPLICATION & CONFIRMATION
             if (msg.tempId && msg.senderId === USER_ID) {
                 const tempBubble = document.getElementById(`msg-${msg.tempId}`);
@@ -792,13 +948,13 @@
                     tempBubble.id = `msg-${msg._id}`;
                     const statusEl = tempBubble.querySelector('.status-icon');
                     if (statusEl) statusEl.innerHTML = getStatusIcon(msg.status);
-                    return; 
+                    return;
                 } else {
                     console.log("⚠️ [SYNC] Temp bubble not found for ID:", msg.tempId);
                 }
             }
 
-            // Skip if database ID already exists in UI
+            // kip if database ID already exists in UI
             if (document.getElementById(`msg-${msg._id}`)) {
                 console.log("🚫 [SYNC] Skipping duplicate message:", msg._id);
                 return;
@@ -806,7 +962,7 @@
 
             renderMessage(msg);
             scrollToBottom();
-            
+
             if (msg.senderId !== USER_ID) {
                 vibrateDevice();
                 playReceiveSound();
@@ -835,7 +991,7 @@
                 if (data.success) {
                     const btn = document.getElementById('ghost-toggle');
                     const dot = document.getElementById('ghost-status-dot');
-                    
+
                     if (data.ghostMode) {
                         btn.classList.add('text-brand-pink', 'bg-brand-pink/10', 'animate-pulse');
                         btn.classList.remove('hover:bg-white/5', 'hover:text-white');
@@ -867,7 +1023,7 @@
         async function processOfflineQueue() {
             if (offlineQueue.length === 0) return;
             console.log(`📡 SYNCING: Sending ${offlineQueue.length} offline messages...`);
-            
+
             for (const msg of offlineQueue) {
                 try {
                     await fetch("/send-message", {
@@ -891,9 +1047,9 @@
 
             isSending = true;
             const tempId = 'temp_' + Date.now();
-            const msgData = { 
-                senderId: USER_ID, 
-                receiverId: PARTNER_ID, 
+            const msgData = {
+                senderId: USER_ID,
+                receiverId: PARTNER_ID,
                 text: text,
                 type: 'text',
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -904,7 +1060,7 @@
             // 🚀 STEP 1: INSTANT LOCAL ECHO
             renderMessage(msgData);
             scrollToBottom();
-            
+
             input.value = '';
             socket.emit('typing', { coupleId: COUPLE_ID, isTyping: false });
 
@@ -933,7 +1089,7 @@
                     userName: USER_NAME,
                     tempId: tempId
                 });
-                
+
                 createHeartEffect();
             } catch (e) {
                 console.warn("⚠️ POST Failed, falling back to Socket only:", e);
@@ -953,13 +1109,13 @@
         }
 
         async function loadMessages() {
-            if (!PARTNER_ID || !navigator.onLine) return; 
+            if (!PARTNER_ID || !navigator.onLine) return;
             try {
                 const res = await fetch(`/messages/${USER_ID}/${PARTNER_ID}`);
                 const data = await res.json();
 
                 // Optimization: Only redraw if message count or status changed
-                const currentState = JSON.stringify(data.map(m => ({ id: m._id, status: m.status })));
+               const currentState = JSON.stringify(data.map(m => ({ id: m._id, status: m.status })));
                 if (window.lastChatState === currentState) return;
                 window.lastChatState = currentState;
 
@@ -1382,12 +1538,12 @@
                 if (timeLeft <= 0) { clearInterval(timer); viewer.classList.add('hidden'); imgEl.src = ''; loadMessages(); }
             }, 1000);
         }
-
         window.addEventListener('load', () => {
             initChat();
-            markAsDelivered();
-            // Polling only as a safety net, but reduced frequency
-            setInterval(loadMessages, 3000);
+            if (PARTNER_ID) {
+                markAsDelivered();
+                setInterval(loadMessages, 3000);
+            }
         });
     </script>
 
@@ -1446,42 +1602,53 @@
         </div>
     </div>
     <!-- --- WHATSAPP STYLE CALLING UI --- -->
-    <div id="incoming-call-modal" class="hidden fixed inset-0 z-[1000] bg-[#0d0714]/95 backdrop-blur-2xl flex flex-col items-center justify-between py-24 overflow-hidden animate-fadeIn">
+    <div id="incoming-call-modal"
+        class="hidden fixed inset-0 z-[1000] bg-[#0d0714]/95 backdrop-blur-2xl flex flex-col items-center justify-between py-24 overflow-hidden animate-fadeIn">
         <div class="absolute inset-0 bg-gradient-to-b from-brand-pink/10 to-transparent"></div>
         <div class="flex flex-col items-center text-center space-y-6 z-10">
             <div class="relative">
                 <div class="absolute inset-0 bg-brand-pink/20 rounded-full blur-3xl animate-pulse"></div>
-                <img src="/images/partner-avatar.png" class="w-32 h-32 rounded-full border-4 border-brand-pink relative shadow-2xl scale-110">
-                <div class="absolute -bottom-2 -right-2 w-10 h-10 bg-brand-pink rounded-full flex items-center justify-center text-white border-4 border-[#0d0714]">
+                <img src="/images/partner-avatar.png"
+                    class="w-32 h-32 rounded-full border-4 border-brand-pink relative shadow-2xl scale-110">
+                <div
+                    class="absolute -bottom-2 -right-2 w-10 h-10 bg-brand-pink rounded-full flex items-center justify-center text-white border-4 border-[#0d0714]">
                     <i class="fas fa-heart animate-bounce"></i>
                 </div>
             </div>
             <div>
                 <h2 id="caller-name-text" class="text-4xl font-black text-white tracking-tight">Partner</h2>
-                <p id="call-type-label" class="text-brand-pink font-bold uppercase tracking-[0.3em] text-[10px] mt-4 animate-pulse">Loveyapa Calling...</p>
+                <p id="call-type-label"
+                    class="text-brand-pink font-bold uppercase tracking-[0.3em] text-[10px] mt-4 animate-pulse">Loveyapa
+                    Calling...</p>
             </div>
         </div>
 
         <div class="flex space-x-12 z-10">
-            <button onclick="rejectCall()" class="w-20 h-20 bg-red-500/20 border border-red-500/30 rounded-full flex items-center justify-center text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-2xl active:scale-90">
+            <button onclick="rejectCall()"
+                class="w-20 h-20 bg-red-500/20 border border-red-500/30 rounded-full flex items-center justify-center text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-2xl active:scale-90">
                 <i class="fas fa-times text-2xl"></i>
             </button>
-            <button onclick="acceptCall()" class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white shadow-2xl shadow-green-500/40 animate-bounce active:scale-95">
+            <button onclick="acceptCall()"
+                class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white shadow-2xl shadow-green-500/40 animate-bounce active:scale-95">
                 <i class="fas fa-phone text-2xl"></i>
             </button>
         </div>
     </div>
 
     <!-- Outgoing Call Modal -->
-    <div id="outgoing-call-modal" class="hidden fixed inset-0 z-[1000] bg-[#0d0714]/95 backdrop-blur-2xl flex flex-col items-center justify-between py-24 animate-fadeIn">
+    <div id="outgoing-call-modal"
+        class="hidden fixed inset-0 z-[1000] bg-[#0d0714]/95 backdrop-blur-2xl flex flex-col items-center justify-between py-24 animate-fadeIn">
         <div class="flex flex-col items-center text-center space-y-6">
-            <img src="/images/partner-avatar.png" class="w-32 h-32 rounded-full border-4 border-white/10 grayscale opacity-80">
+            <img src="/images/partner-avatar.png"
+                class="w-32 h-32 rounded-full border-4 border-white/10 grayscale opacity-80">
             <div>
                 <h2 class="text-3xl font-black text-white">Calling...</h2>
-                <p id="outgoing-call-type" class="text-white/40 text-xs font-bold uppercase tracking-widest mt-2">Connecting to partner</p>
+                <p id="outgoing-call-type" class="text-white/40 text-xs font-bold uppercase tracking-widest mt-2">
+                    Connecting to partner</p>
             </div>
         </div>
-        <button onclick="hangupCall()" class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center text-white shadow-2xl shadow-red-600/30">
+        <button onclick="hangupCall()"
+            class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center text-white shadow-2xl shadow-red-600/30">
             <i class="fas fa-phone-slash text-2xl rotate-[135deg]"></i>
         </button>
     </div>
@@ -1490,27 +1657,37 @@
     <div id="call-overlay" class="hidden fixed inset-0 z-[1100] bg-black">
         <div id="remote-video" class="w-full h-full bg-slate-900 flex items-center justify-center">
             <div class="text-center">
-                <img src="/images/partner-avatar.png" class="w-32 h-32 rounded-full border-2 border-brand-pink mx-auto mb-4 animate-pulse">
-                <p id="calling-status" class="text-brand-pink text-xs font-black uppercase tracking-widest animate-pulse">Connecting partner...</p>
+                <img src="/images/partner-avatar.png"
+                    class="w-32 h-32 rounded-full border-2 border-brand-pink mx-auto mb-4 animate-pulse">
+                <p id="calling-status"
+                    class="text-brand-pink text-xs font-black uppercase tracking-widest animate-pulse">Connecting
+                    partner...</p>
             </div>
         </div>
-        
-        <div id="local-video" class="absolute top-10 right-6 w-32 h-44 bg-black rounded-3xl overflow-hidden border-2 border-white/20 z-50 shadow-2xl"></div>
+
+        <div id="local-video"
+            class="absolute top-10 right-6 w-32 h-44 bg-black rounded-3xl overflow-hidden border-2 border-white/20 z-50 shadow-2xl">
+        </div>
 
         <div class="absolute top-10 left-6 z-50">
-            <div id="call-timer" class="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full text-white font-mono text-sm border border-white/10 hidden">00:00</div>
+            <div id="call-timer"
+                class="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full text-white font-mono text-sm border border-white/10 hidden">
+                00:00</div>
         </div>
 
         <!-- Call Controls -->
         <div class="absolute bottom-12 left-0 right-0 flex flex-col items-center space-y-8 z-50">
             <div class="flex items-center space-x-6">
-                <button id="mic-btn" onclick="toggleMic()" class="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white flex items-center justify-center group transition-all active:scale-95">
+                <button id="mic-btn" onclick="toggleMic()"
+                    class="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white flex items-center justify-center group transition-all active:scale-95">
                     <i class="fas fa-microphone"></i>
                 </button>
-                <button onclick="hangupCall()" class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center text-white shadow-[0_0_30px_rgba(220,38,38,0.5)] transform hover:scale-110 active:scale-90 transition-all">
+                <button onclick="hangupCall()"
+                    class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center text-white shadow-[0_0_30px_rgba(220,38,38,0.5)] transform hover:scale-110 active:scale-90 transition-all">
                     <i class="fas fa-phone-slash text-3xl rotate-[135deg]"></i>
                 </button>
-                <button id="video-btn" onclick="toggleVideo()" class="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white flex items-center justify-center group transition-all active:scale-95">
+                <button id="video-btn" onclick="toggleVideo()"
+                    class="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white flex items-center justify-center group transition-all active:scale-95">
                     <i class="fas fa-video"></i>
                 </button>
             </div>
