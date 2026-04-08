@@ -251,17 +251,22 @@ app.get('/discover', checkAuth, (req, res) => res.render('discover', { user: res
 app.get('/api/discover/users', checkAuth, async (req, res) => {
     try {
         const user = res.locals.user;
-        // Find users who:
-        // 1. Are NOT the current user
-        // 2. Are NOT already paired
-        // 3. Current user has NOT already sent them an invitation
+        // Fetch users who are not the current user, have no partner, and haven't been invited yet
         const users = await User.find({
             _id: { $ne: user._id },
-            partnerId: null,
-            _id: { $nin: user.sentInvitations }
+            $or: [
+                { partnerId: null },
+                { partnerId: "" }
+            ],
+            _id: { $nin: user.sentInvitations || [] }
         }).limit(20);
+        
+        console.log(`[DISCOVER] Found ${users.length} potential partners for ${user.name}`);
         res.json(users);
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { 
+        console.error("Discover API Error:", e);
+        res.status(500).json({ error: e.message }); 
+    }
 });
 
 app.post('/api/discover/invite', checkAuth, async (req, res) => {
