@@ -953,6 +953,42 @@ app.post('/api/connect-partner', checkAuth, async (req, res) => {
         }
     } catch (err) { res.status(500).json({ error: "Server error!" }); }
 });
+app.post('/api/disconnect-partner', checkAuth, async (req, res) => {
+    try {
+        const me = res.locals.user;
+        if (!me.partnerId) return res.status(400).json({ error: "You don't have a partner to disconnect! 😂" });
+
+        const partnerId = me.partnerId;
+
+        // Reset MY data
+        await User.findByIdAndUpdate(me._id, { 
+            partnerId: null, 
+            partnerName: "", 
+            pendingRequest: null, 
+            exp: 0, 
+            loveScore: 0, 
+            streak: 0,
+            coupleId: null 
+        });
+
+        // Reset PARTNER's data
+        await User.findByIdAndUpdate(partnerId, { 
+            partnerId: null, 
+            partnerName: "", 
+            pendingRequest: null, 
+            exp: 0, 
+            loveScore: 0, 
+            streak: 0,
+            coupleId: null 
+        });
+
+        console.log(`💔 [DISCONNECT] Partnership ended: ${me.name} and their partner.`);
+        res.json({ success: true, message: "Disconnected successfully! 💔" });
+    } catch (err) {
+        console.error("Disconnect Error:", err);
+        res.status(500).json({ error: "Server error!" });
+    }
+});
 
 // --- PARTNER & SCORE APIs ---
 app.get('/api/partner', checkAuth, async (req, res) => {
