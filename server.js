@@ -83,7 +83,17 @@ const UserSchema = new mongoose.Schema({
     code: { type: String, unique: true },
     partnerId: { type: String, default: null },
     partnerName: { type: String, default: null },
-    pendingRequest: { type: String, default: null },
+    pendingRequest: { type: String, default: null }, // Existing system (Code based)
+    
+    // --- DISCOVERY FEATURES ---
+    age: { type: Number, default: 20 },
+    bio: { type: String, default: "I'm looking for meaningful connection! ❤️" },
+    interests: { type: [String], default: ["Love", "Caring", "Life"] },
+    gender: { type: String, default: "Other" },
+    avatar: { type: String, default: null },
+    receivedInvitations: { type: [String], default: [] }, // Array of User IDs
+    sentInvitations: { type: [String], default: [] }, // Array of User IDs
+    
     streak: { type: Number, default: 0 },
     loveScore: { type: Number, default: 0 },
     mood: { type: String, default: '😴' },
@@ -236,6 +246,65 @@ app.get('/profile', checkAuth, (req, res) => res.render('profile', { user: res.l
 app.get('/camera', checkAuth, (req, res) => res.render('camera', { user: res.locals.user }));
 app.get('/quiz', checkAuth, (req, res) => res.render('quiz', { user: res.locals.user }));
 app.get('/discover', checkAuth, (req, res) => res.render('discover', { user: res.locals.user }));
+
+// --- DISCOVERY APIs ---
+app.get('/api/discover/users', checkAuth, async (req, res) => {
+    try {
+        const user = res.locals.user;
+        // Find users who:
+        // 1. Are NOT the current user
+        // 2. Are NOT already paired
+        // 3. Current user has NOT already sent them an invitation
+        const users = await User.find({
+            _id: { $ne: user._id },
+            partnerId: null,
+            _id: { $nin: user.sentInvitations }
+        }).limit(20);
+        res.json(users);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/discover/invite', checkAuth, async (req, res) => {
+    try {
+        const { targetId } = req.body;
+        const user = res.locals.user;
+        
+        // Add current user to target's receivedInvitations
+        await User.findByIdAndUpdate(targetId, {
+            $addToSet: { receivedInvitations: user._id.toString() }
+        });
+        
+        // Add target to current user's sentInvitations
+        user.sentInvitations.push(targetId);
+        await user.save();
+        
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/discover/accept', checkAuth, async (req, res) => {
+    try {
+        const { senderId } = req.body;
+        const user = res.locals.user;
+        const sender = await User.findById(senderId);
+
+        if (!sender) return res.status(404).json({ error: "User no longer exists" });
+        if (sender.partnerId || user.partnerId) return res.status(400).json({ error: "One of you is already paired!" });
+
+        // Establish Partner Connection
+        user.partnerId = sender._id.toString();
+        user.partnerName = sender.name;
+        user.receivedInvitations = user.receivedInvitations.filter(id => id !== senderId);
+        await user.save();
+
+        sender.partnerId = user._id.toString();
+        sender.partnerName = user.name;
+        sender.sentInvitations = sender.sentInvitations.filter(id => id !== user._id.toString());
+        await sender.save();
+
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
 app.get('/admin', checkAuth, checkSuperAdmin, (req, res) => res.render('admin', { user: res.locals.user }));
 
 // --- ADMIN SYSTEM APIs ---

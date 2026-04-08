@@ -204,127 +204,108 @@
         </button>
     </header>
 
-    <!-- Swipe Area -->
+    <!-- Discovery Content -->
     <main class="relative h-[65vh] max-w-sm mx-auto z-10 select-none">
         <div id="card-stack" class="relative w-full h-full">
-            <!-- Cards Dyanmic -->
-            <!-- Empty State (Lower Z-index) -->
-            <div
-                class="absolute inset-0 flex flex-col items-center justify-center text-center p-10 space-y-4 opacity-40">
+            <!-- Cards Dynamic -->
+            <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-center p-10 space-y-4 opacity-40">
                 <i class="fas fa-ghost text-6xl text-brand-pink mb-4"></i>
-                <h3 class="text-xl font-black uppercase tracking-widest">No more users nearby 😅</h3>
-                <p class="text-[10px] uppercase font-bold tracking-widest leading-loose">Try changing your filters or
-                    check back later ❤️</p>
-                <button onclick="location.reload()"
-                    class="bg-white/5 border border-white/10 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest">Refresh
-                    🔄</button>
+                <h3 class="text-xl font-black uppercase tracking-widest">Finding Singles... 🔎</h3>
+                <p class="text-[10px] uppercase font-bold tracking-widest leading-loose">Checking for perfect matches ❤️</p>
             </div>
         </div>
 
-        <!-- Notification Overlays on Cards (Like/Nope) -->
-        <div id="status-overlay"
-            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 transition-opacity">
-            <div id="status-icon"
-                class="text-8xl font-black italic tracking-widest px-8 py-2 rounded-2xl border-[10px]"></div>
+        <!-- Notification Overlays -->
+        <div id="status-overlay" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 transition-opacity">
+            <div id="status-icon" class="text-8xl font-black italic tracking-widest px-8 py-2 rounded-2xl border-[10px]"></div>
         </div>
     </main>
 
     <!-- Swipe Actions -->
-    <div class="flex items-center justify-center space-x-6 py-10 relative z-50">
-        <button onclick="handleAction('skip')" class="floating-action btn-skip hover:scale-110 active:scale-95"><i
-                class="fas fa-times"></i></button>
-        <button onclick="handleAction('super')"
-            class="floating-action btn-super hover:scale-110 active:scale-95 text-lg"><i
-                class="fas fa-star"></i></button>
-        <button onclick="handleAction('like')" class="floating-action btn-like hover:scale-110 active:scale-95"><i
-                class="fas fa-heart"></i></button>
+    <div id="action-buttons" class="flex items-center justify-center space-x-6 py-10 relative z-50">
+        <button onclick="handleAction('skip')" class="floating-action btn-skip hover:scale-110 active:scale-95"><i class="fas fa-times"></i></button>
+        <button onclick="handleAction('like')" class="floating-action btn-like hover:scale-110 active:scale-95"><i class="fas fa-heart"></i></button>
     </div>
 
-    <!-- Filters Sidebar -->
-    <div id="filters-panel"
-        class="fixed inset-y-0 right-0 w-80 bg-[#0a0514]/95 backdrop-blur-2xl border-l border-white/5 z-[1000] p-10 transform translate-x-full transition-transform duration-500 ease-in-out">
-        <div class="flex items-center justify-between mb-10">
-            <h3 class="font-black text-xl">Discovery Filters</h3>
-            <button onclick="toggleFilters()" class="text-gray-500 hover:text-white"><i
-                    class="fas fa-times"></i></button>
-        </div>
-        <div class="space-y-10">
-            <div class="space-y-4">
-                <label class="text-[10px] font-black uppercase tracking-widest text-gray-400">Distance (km)</label>
-                <input type="range" class="w-full h-1 bg-white/10 appearance-none rounded-full accent-brand-pink">
-                <div class="flex justify-between text-[10px] font-black text-gray-600">
-                    <span>1km</span><span>100km</span>
-                </div>
+    <!-- Invitations Section (Add Friends vibe) -->
+    <div id="invitations-section" class="max-w-sm mx-auto px-6 pb-20 relative z-50">
+        <div class="glass-card p-6 border-brand-pink/20 bg-brand-pink/5">
+            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] mb-4 text-brand-pink flex items-center">
+                <i class="fas fa-user-plus mr-2"></i> Pending Partner Requests
+            </h3>
+            <div id="invitation-list" class="space-y-4">
+                <!-- Dynamic Invitations -->
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest italic py-4">No pending requests yet! ❤️</p>
             </div>
-            <div class="space-y-4">
-                <label class="text-[10px] font-black uppercase tracking-widest text-gray-400">Age Range</label>
-                <div class="flex items-center space-x-4">
-                    <input type="number" placeholder="18"
-                        class="flex-1 bg-white/5 border border-white/10 px-4 py-2 rounded-lg text-xs font-bold font-black">
-                    <span class="text-gray-500">to</span>
-                    <input type="number" placeholder="35"
-                        class="flex-1 bg-white/5 border border-white/10 px-4 py-2 rounded-lg text-xs font-bold font-black">
-                </div>
-            </div>
-            <div class="space-y-4">
-                <label class="text-[10px] font-black uppercase tracking-widest text-gray-400">Interests</label>
-                <div class="flex flex-wrap gap-2">
-                    <span
-                        class="bg-brand-pink/20 text-brand-pink text-[9px] font-black uppercase px-3 py-1.5 rounded-full border border-brand-pink/30">Music</span>
-                    <span
-                        class="bg-white/5 text-gray-400 text-[9px] font-black uppercase px-3 py-1.5 rounded-full border border-white/10">Travel</span>
-                    <span
-                        class="bg-white/5 text-gray-400 text-[9px] font-black uppercase px-3 py-1.5 rounded-full border border-white/10">Gym</span>
-                    <span
-                        class="bg-white/5 text-gray-400 text-[9px] font-black uppercase px-3 py-1.5 rounded-full border border-white/10">Gaming</span>
-                </div>
-            </div>
-            <button onclick="toggleFilters()"
-                class="w-full bg-btn-gradient py-4 rounded-xl font-black uppercase text-xs tracking-widest mt-10">Apply
-                Filters</button>
         </div>
     </div>
-
 
     <script>
-        // Floating Hearts Gen
-        const container = document.getElementById('heart-container');
-        function createHeart() {
-            const heart = document.createElement('div'); heart.classList.add('heart');
-            heart.innerHTML = '<i class="fas fa-heart"></i>'; heart.style.left = Math.random() * 100 + 'vw';
-            heart.style.fontSize = Math.random() * 10 + 10 + 'px'; heart.style.animationDuration = Math.random() * 5 + 5 + 's';
-            container.appendChild(heart);
-            setTimeout(() => heart.remove(), 10000);
-        }
-        setInterval(createHeart, 1000);
-
-        // Mock Users
-        const users = [
-            { id: 1, name: "Priya", age: 22, user: "@priya_sun", bio: "Traveling the world one heart at a time. Coffee lover ☕", interests: ["Travel", "Photography"], img: "https://api.dicebear.com/7.x/avataaars/svg?seed=Priya" },
-            { id: 2, name: "Sneha", age: 24, user: "@sneha_shine", bio: "Gamer girl. Fitness enthusiast. Music is life 🎧", interests: ["Gaming", "Gym"], img: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sneha" },
-            { id: 3, name: "Anish", age: 25, user: "@anish_cool", bio: "Tech geek. Loves sunsets and deep talks.", interests: ["Tech", "Nature"], img: "https://api.dicebear.com/7.x/avataaars/svg?seed=Anish" },
-            { id: 4, name: "Kaira", age: 23, user: "@kaira_vibes", bio: "Dance like no one is watching. ✨", interests: ["Dance", "Pizza"], img: "https://api.dicebear.com/7.x/avataaars/svg?seed=Kaira" }
-        ];
-
+        let users = [];
+        let currentCardIndex = 0;
         const cardStack = document.getElementById('card-stack');
-        let currentCardIndex = users.length - 1;
+
+        async function loadUsers() {
+            try {
+                const res = await fetch('/api/discover/users');
+                users = await res.json();
+                renderStack();
+            } catch (e) { console.error("Load fail:", e); }
+        }
+
+        async function loadInvitations() {
+            try {
+                // We'll fetch the current user's full data to get receivedInvitations
+                const res = await fetch('/api/admin/users'); // Reuse or specific API
+                const allUsers = await res.json();
+                const myId = "<%= user._id %>";
+                const me = allUsers.find(u => u._id === myId);
+                
+                const list = document.getElementById('invitation-list');
+                list.innerHTML = '';
+                
+                if (!me.receivedInvitations || me.receivedInvitations.length === 0) {
+                    list.innerHTML = '<p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest italic py-2">No pending requests yet! ❤️</p>';
+                    return;
+                }
+
+                me.receivedInvitations.forEach(senderId => {
+                    const sender = allUsers.find(u => u._id === senderId);
+                    if (!sender) return;
+
+                    const div = document.createElement('div');
+                    div.className = "flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/10";
+                    div.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-brand-pink/20 overflow-hidden">
+                                <img src="${sender.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${sender.name}`}" class="w-full h-full object-cover">
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-black uppercase tracking-widest">${sender.name}</h4>
+                                <p class="text-[8px] text-gray-500 font-black uppercase tracking-widest">Wants to pair with you!</p>
+                            </div>
+                        </div>
+                        <button onclick="acceptInvite('${sender._id}')" class="bg-brand-pink px-4 py-2 rounded-full text-[8px] font-black uppercase tracking-widest shadow-lg shadow-brand-pink/30">Accept</button>
+                    `;
+                    list.appendChild(div);
+                });
+            } catch (e) { console.error("Invitations Load fail:", e); }
+        }
 
         function createCard(user) {
             const card = document.createElement('div');
             card.className = 'swipe-card glass-card overflow-hidden';
             card.innerHTML = `
                 <div class="relative h-full">
-                    <img src="${user.img}" class="w-full h-full object-cover">
+                    <img src="${user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}" class="w-full h-full object-cover">
                     <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
                     <div class="absolute bottom-6 left-6 right-6">
                         <div class="flex items-center space-x-3 mb-2">
-                            <h2 class="text-3xl font-black italic tracking-tighter">${user.name}, ${user.age}</h2>
-                            <i class="fas fa-check-circle text-blue-400 text-sm"></i>
+                            <h2 class="text-3xl font-black italic tracking-tighter">${user.name}, ${user.age || 20}</h2>
                         </div>
-                        <p class="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-3">${user.user}</p>
-                        <p class="text-xs text-gray-300 font-medium line-clamp-2 mb-4 leading-relaxed">${user.bio}</p>
+                        <p class="text-xs text-gray-300 font-medium line-clamp-2 mb-4 leading-relaxed">${user.bio || 'Wants to find love!'}</p>
                         <div class="flex flex-wrap gap-2">
-                            ${user.interests.map(i => `<span class="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-white/5">${i}</span>`).join('')}
+                            ${(user.interests || ['Love']).map(i => `<span class="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-white/5">${i}</span>`).join('')}
                         </div>
                     </div>
                 </div>
@@ -333,23 +314,29 @@
         }
 
         function renderStack() {
-            users.forEach((user, index) => {
+            if (users.length === 0) {
+                document.getElementById('empty-state').innerHTML = `
+                    <i class="fas fa-ghost text-6xl text-brand-pink mb-4"></i>
+                    <h3 class="text-xl font-black uppercase tracking-widest">No more users nearby 😅</h3>
+                    <p class="text-[10px] uppercase font-bold tracking-widest leading-loose">Check back later or invite friends! ❤️</p>
+                `;
+                return;
+            }
+            users.reverse().forEach((user) => {
                 const card = createCard(user);
                 cardStack.appendChild(card);
-                initSwipe(card);
+                initSwipe(card, user._id);
             });
+            currentCardIndex = users.length - 1;
         }
-        renderStack();
 
-        // Swipe Logic
-        function initSwipe(card) {
-            let startX, startY, moveX, moveY;
-
+        function initSwipe(card, targetId) {
+            let startX, moveX, moveY;
+            
             card.onmousedown = card.ontouchstart = (e) => {
                 startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
                 startY = e.type === 'mousedown' ? e.clientY : e.touches[0].clientY;
                 card.style.transition = 'none';
-                card.style.cursor = 'grabbing';
 
                 document.onmousemove = document.ontouchmove = (ev) => {
                     moveX = (ev.type === 'mousemove' ? ev.clientX : ev.touches[0].clientX) - startX;
@@ -357,28 +344,21 @@
                     const rotation = moveX / 20;
                     card.style.transform = `translate(${moveX}px, ${moveY}px) rotate(${rotation}deg)`;
 
-                    // Show overlays
                     const overlay = document.getElementById('status-overlay');
                     const icon = document.getElementById('status-icon');
                     overlay.style.opacity = Math.min(Math.abs(moveX) / 100, 1);
                     if (moveX > 50) {
-                        icon.innerText = "LIKE"; icon.className = "text-green-500 border-green-500 text-8xl font-black italic tracking-widest px-8 py-2 rounded-2xl border-[10px]";
+                        icon.innerText = "INVITE"; icon.className = "text-brand-pink border-brand-pink text-8xl font-black italic tracking-widest px-8 py-2 rounded-2xl border-[10px]";
                     } else if (moveX < -50) {
-                        icon.innerText = "NOPE"; icon.className = "text-red-500 border-red-500 text-8xl font-black italic tracking-widest px-8 py-2 rounded-2xl border-[10px]";
-                    } else {
-                        overlay.style.opacity = 0;
-                    }
+                        icon.innerText = "SKIP"; icon.className = "text-gray-500 border-gray-500 text-8xl font-black italic tracking-widest px-8 py-2 rounded-2xl border-[10px]";
+                    } else { overlay.style.opacity = 0; }
                 };
 
                 document.onmouseup = document.ontouchend = () => {
                     document.onmousemove = document.ontouchmove = null;
-                    card.style.cursor = 'grab';
-                    const overlay = document.getElementById('status-overlay');
-                    overlay.style.opacity = 0;
-
-                    if (Math.abs(moveX) > 120) {
-                        dismissCard(card, moveX > 0);
-                    } else {
+                    document.getElementById('status-overlay').style.opacity = 0;
+                    if (Math.abs(moveX) > 120) dismissCard(card, moveX > 0, targetId);
+                    else {
                         card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
                         card.style.transform = 'translate(0, 0) rotate(0)';
                     }
@@ -386,57 +366,50 @@
             };
         }
 
-        function dismissCard(card, isLike) {
-            const outX = isLike ? 1000 : -1000;
+        async function dismissCard(card, isInvite, targetId) {
+            const outX = isInvite ? 1000 : -1000;
             card.style.transition = 'all 0.5s ease-in';
-            card.style.transform = `translate(${outX}px, ${moveY || 0}px) rotate(${outX / 20}deg)`;
+            card.style.transform = `translate(${outX}px, 0px) rotate(${outX / 20}deg)`;
             card.style.opacity = '0';
 
-            if (isLike) {
-                showToast("Liked! ❤️");
-                // Simulate mutual match (50% chance)
-                if (Math.random() > 0.5) {
-                    setTimeout(() => showMatchPopup(users[currentCardIndex]), 600);
-                }
+            if (isInvite) {
+                await fetch('/api/discover/invite', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targetId })
+                });
+                showToast("Invitation Sent! 🏹❤️");
             } else {
                 showToast("Skipped ❌");
             }
 
             setTimeout(() => card.remove(), 500);
-            currentCardIndex--;
+        }
+
+        async function acceptInvite(senderId) {
+            try {
+                const res = await fetch('/api/discover/accept', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ senderId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast("ACCEPTED! ❤️ Redirecting...");
+                    setTimeout(() => window.location.href = '/home', 2000);
+                } else {
+                    alert(data.error);
+                }
+            } catch (e) { console.error("Accept fail:", e); }
         }
 
         function handleAction(type) {
             const stack = cardStack.querySelectorAll('.swipe-card');
             if (stack.length === 0) return;
             const topCard = stack[stack.length - 1];
-
-            if (type === 'skip') dismissCard(topCard, false);
-            if (type === 'like') dismissCard(topCard, true);
-            if (type === 'super') {
-                topCard.style.transition = 'all 0.8s ease-out';
-                topCard.style.transform = 'translateY(-1000px) rotate(0deg)';
-                showToast("SUPER LIKE! ⭐");
-                setTimeout(() => topCard.remove(), 800);
-                setTimeout(() => showMatchPopup(users[currentCardIndex]), 600);
-                currentCardIndex--;
-            }
-        }
-
-        function showMatchPopup(user) {
-            const popup = document.getElementById('match-popup');
-            document.getElementById('match-avatar').src = user.img;
-            popup.style.display = 'flex';
-            navigator.vibrate?.([100, 50, 100, 50, 400]);
-        }
-
-        function closeMatch() {
-            document.getElementById('match-popup').style.display = 'none';
-        }
-
-        function toggleFilters() {
-            const panel = document.getElementById('filters-panel');
-            panel.classList.toggle('translate-x-full');
+            // Extract targetId (mock/stored in attribute)
+            const targetId = users[users.length - 1 - (users.length - stack.length)]._id;
+            dismissCard(topCard, type === 'like', targetId);
         }
 
         function showToast(msg) {
@@ -444,6 +417,22 @@
             toast.innerText = msg; toast.style.display = 'block';
             setTimeout(() => toast.style.display = 'none', 1500);
         }
+
+        loadUsers();
+        loadInvitations();
+        
+        // Floating Hearts
+        const container = document.getElementById('heart-container');
+        setInterval(() => {
+            const heart = document.createElement('div'); heart.classList.add('heart');
+            heart.innerHTML = '<i class="fas fa-heart"></i>'; heart.style.left = Math.random() * 100 + 'vw';
+            heart.style.fontSize = Math.random() * 10 + 10 + 'px'; heart.style.animationDuration = Math.random() * 5 + 5 + 's';
+            container.appendChild(heart);
+            setTimeout(() => heart.remove(), 10000);
+        }, 1000);
+    </script>
+</body>
+</html>
     </script>
 </body>
 
