@@ -117,14 +117,15 @@
             <% } %>
             <h2 class="text-3xl font-black text-white text-center mb-10 italic mt-4">Connect with your partner <span
                     class="text-brand-pink text-4xl">❤️</span></h2>
-            <div class="mb-10 text-center glass-card bg-black/20 p-8 border-white/5">
-                <p class="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] mb-4">Your Secret Love Code
-                </p>
-                <div class="flex items-center justify-center gap-6">
-                    <span id="myCode" class="text-5xl font-black text-white tracking-[0.2em] italic">------</span>
-                    <button onclick="copyCode()"
-                        class="w-12 h-12 glass-card flex items-center justify-center text-brand-pink text-xl hover:scale-110 transition-all"><i
-                            class="far fa-copy"></i></button>
+            <div class="mb-10 text-center">
+                <p class="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] mb-6">Your Secret Love Code</p>
+                <div class="relative group max-w-sm mx-auto">
+                    <div class="flex items-center justify-between p-2 pl-8 glass-card bg-black/40 border-white/10 group-hover:border-brand-pink/30 transition-all duration-500">
+                        <span id="myCode" class="text-3xl font-black text-white tracking-[0.3em] italic uppercase truncate">------</span>
+                        <button onclick="copyCode()" id="copyBtn" class="w-14 h-14 bg-brand-pink rounded-3xl flex items-center justify-center text-white text-xl shadow-lg shadow-brand-pink/20 hover:scale-105 active:scale-95 transition-all">
+                            <i class="far fa-copy"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div id="connectBox">
@@ -522,7 +523,16 @@
             const code = document.getElementById("myCode").innerText;
             if (code === "------") return;
             navigator.clipboard.writeText(code);
+            vibrateDevice();
+            
+            const btn = document.getElementById('copyBtn');
+            const icon = btn.querySelector('i');
+            icon.className = "fas fa-check"; // Success icon
             showToast("Love Code Copied! ❤️");
+            
+            setTimeout(() => {
+                icon.className = "far fa-copy"; // Revert icon
+            }, 2000);
         }
 
         function toggleSettings() {

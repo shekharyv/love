@@ -1269,20 +1269,34 @@
             </div>
 
             <div class="mb-10 text-center relative group">
-                <p class="text-[9px] font-black tracking-widest text-brand-pink uppercase mb-3 text-center">Your Love
-                    Code 🎀</p>
-                <div class="relative flex items-center justify-center cursor-pointer active:scale-95 transition-all"
-                    onclick="copyCode()">
-                    <div id="my-code-text"
-                        class="text-3xl font-black italic tracking-[0.3em] uppercase bg-white/5 py-4 px-10 rounded-3xl border border-white/5 w-full hover:bg-white/10 transition-colors">
-                        ------
-                    </div>
-                    <button id="copy-btn"
-                        class="absolute right-4 text-brand-pink hover:text-white transition-all bg-brand-pink/10 p-2 rounded-xl border border-brand-pink/20">
-                        <i class="fas fa-copy"></i>
+                <p class="text-[9px] font-black tracking-widest text-brand-pink uppercase mb-4 text-center">Your Love Code 🎀</p>
+                <div class="flex items-center justify-between p-2 pl-6 glass-card bg-black/40 border-white/10 group-hover:border-brand-pink/30 transition-all duration-500">
+                    <span id="my-code-text" class="text-2xl font-black italic tracking-[0.3em] uppercase text-white truncate">------</span>
+                    <button onclick="copyCode()" id="copy-btn-home" class="w-12 h-12 bg-brand-pink rounded-2xl flex items-center justify-center text-white text-lg shadow-lg shadow-brand-pink/20 hover:scale-105 active:scale-95 transition-all">
+                        <i class="far fa-copy"></i>
                     </button>
                 </div>
             </div>
+
+            <script>
+                function copyCode() {
+                    const code = document.getElementById("my-code-text").innerText;
+                    if (code === "------") return;
+                    navigator.clipboard.writeText(code);
+                    navigator.vibrate?.(40);
+                    
+                    const btn = document.getElementById('copy-btn-home');
+                    const icon = btn.querySelector('i');
+                    icon.className = "fas fa-check";
+                    
+                    if (typeof showToast === 'function') showToast("Love Code Copied! ❤️");
+                    else alert("Code Copied! ❤️");
+                    
+                    setTimeout(() => {
+                        icon.className = "far fa-copy";
+                    }, 2000);
+                }
+            </script>
 
             <div class="mb-10 text-left px-2">
                 <label class="text-[9px] font-black tracking-widest text-gray-500 uppercase ml-1 mb-2 block">Enter
