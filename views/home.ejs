@@ -64,14 +64,41 @@
                 const data = await res.json();
 
                 if (data.status === 'connected') {
-                    alert('Sync Complete! Matched with ' + data.partnerName + ' ❤️');
-                    location.reload();
+                    showSyncSuccessAnim(); // 🔥 Trigger Celebration
                 } else if (data.status === 'waiting') {
                     alert("Handshake sent! ⏳ Now your partner must also enter your code to finish pairing.");
                     btn.innerHTML = "Waiting for Partner... ⏳";
                     btn.disabled = true;
                 } else { alert(data.error); btn.innerHTML = original; }
             } catch (err) { alert("Something went wrong!"); btn.innerHTML = original; }
+        }
+
+        function showSyncSuccessAnim() {
+            const screen = document.getElementById('syncSuccessScreen');
+            screen.classList.add('active');
+            
+            // Explosion hearts
+            for(let i=0; i<30; i++) {
+                setTimeout(() => {
+                    const heart = document.createElement('div');
+                    heart.className = "heart";
+                    heart.style.left = "50vw";
+                    heart.style.top = "50vh";
+                    heart.style.color = "#E11D48";
+                    heart.style.fontSize = "20px";
+                    heart.innerHTML = '<i class="fas fa-heart"></i>';
+                    heart.animate([
+                        { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+                        { transform: `translate(${(Math.random()-0.5)*100}vw, ${(Math.random()-0.5)*100}vh) scale(2) rotate(${Math.random()*360}deg)`, opacity: 0 }
+                    ], { duration: 2000, easing: 'ease-out' });
+                    screen.appendChild(heart);
+                    setTimeout(() => heart.remove(), 2000);
+                }, i * 50);
+            }
+
+            setTimeout(() => {
+                location.reload();
+            }, 4000);
         }
 
         async function handleHeaderClick() {
@@ -280,6 +307,71 @@
                 transform: translateY(100vh) rotate(360deg);
                 opacity: 0;
             }
+        }
+
+        /* --- SYNC SUCCESS ANIMATION --- */
+        .sync-success-overlay {
+            position: fixed;
+            inset: 0;
+            background: #0a0514;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .sync-success-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .heart-merge {
+            position: relative;
+            width: 200px;
+            height: 200px;
+        }
+
+        .merging-heart {
+            position: absolute;
+            font-size: 80px;
+            color: #E11D48;
+            filter: drop-shadow(0 0 20px rgba(225, 29, 72, 0.5));
+        }
+
+        .heart-left { left: 0; animation: mergeLeft 2s infinite ease-in-out; }
+        .heart-right { right: 0; animation: mergeRight 2s infinite ease-in-out; }
+
+        @keyframes mergeLeft {
+            0% { transform: translateX(0); opacity: 0.5; }
+            50% { transform: translateX(40px); opacity: 1; }
+            100% { transform: translateX(0); opacity: 0.5; }
+        }
+        @keyframes mergeRight {
+            0% { transform: translateX(0); opacity: 0.5; }
+            50% { transform: translateX(-40px); opacity: 1; }
+            100% { transform: translateX(0); opacity: 0.5; }
+        }
+
+        .pulse-burst {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            background: rgba(225, 29, 72, 0.3);
+            border-radius: 50%;
+            z-index: -1;
+            animation: pulseBurst 2s infinite;
+        }
+
+        @keyframes pulseBurst {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(4); opacity: 0; }
         }
     </style>
 </head>
@@ -2029,6 +2121,16 @@
         // Auto Load Snaps every few seconds
         setInterval(loadSnap, 3000);
     </script>
+    <!-- SYNC SUCCESS OVERLAY -->
+    <div id="syncSuccessScreen" class="sync-success-overlay">
+        <div class="heart-merge">
+            <i class="fas fa-heart merging-heart heart-left"></i>
+            <i class="fas fa-heart merging-heart heart-right"></i>
+            <div class="pulse-burst"></div>
+        </div>
+        <h2 class="text-4xl font-black italic mt-10 tracking-tighter animate-bounce text-white">LOVE SYNCED! ❤️</h2>
+        <p class="text-gray-400 font-black uppercase tracking-[0.4em] text-[10px] mt-4">Connecting your lives together...</p>
+    </div>
 </body>
 
 </html>
