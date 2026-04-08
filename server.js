@@ -310,6 +310,15 @@ app.post('/api/discover/accept', checkAuth, async (req, res) => {
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+app.get('/api/discover/pending', checkAuth, async (req, res) => {
+    try {
+        const user = res.locals.user;
+        const senders = await User.find({ _id: { $in: user.receivedInvitations || [] } }).select('name avatar age bio');
+        res.json(senders);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/admin', checkAuth, checkSuperAdmin, (req, res) => res.render('admin', { user: res.locals.user }));
 
 // --- ADMIN SYSTEM APIs ---

@@ -255,24 +255,18 @@
 
         async function loadInvitations() {
             try {
-                // We'll fetch the current user's full data to get receivedInvitations
-                const res = await fetch('/api/admin/users'); // Reuse or specific API
-                const allUsers = await res.json();
-                const myId = "<%= user._id %>";
-                const me = allUsers.find(u => u._id === myId);
+                const res = await fetch('/api/discover/pending');
+                const senders = await res.json();
                 
                 const list = document.getElementById('invitation-list');
                 list.innerHTML = '';
                 
-                if (!me.receivedInvitations || me.receivedInvitations.length === 0) {
+                if (!senders || senders.length === 0) {
                     list.innerHTML = '<p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest italic py-2">No pending requests yet! ❤️</p>';
                     return;
                 }
 
-                me.receivedInvitations.forEach(senderId => {
-                    const sender = allUsers.find(u => u._id === senderId);
-                    if (!sender) return;
-
+                senders.forEach(sender => {
                     const div = document.createElement('div');
                     div.className = "flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/10";
                     div.innerHTML = `
