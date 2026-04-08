@@ -240,29 +240,91 @@
         </div>
     </div>
 
+    <!-- Filters Sidebar -->
+    <div id="filters-panel"
+        class="fixed inset-y-0 right-0 w-80 bg-[#0a0514]/95 backdrop-blur-2xl border-l border-white/5 z-[1000] p-10 transform translate-x-full transition-transform duration-500 ease-in-out">
+        <div class="flex items-center justify-between mb-10">
+            <h3 class="font-black text-xl">Discovery Filters</h3>
+            <button onclick="toggleFilters()" class="text-gray-500 hover:text-white"><i
+                    class="fas fa-times"></i></button>
+        </div>
+        <div class="space-y-10">
+            <div class="space-y-4">
+                <label class="text-[10px] font-black uppercase tracking-widest text-gray-400">Distance (<span id="distance-val">50</span>km)</label>
+                <input type="range" id="distance-slider" min="1" max="500" value="50" oninput="document.getElementById('distance-val').innerText = this.value"
+                    class="w-full h-1 bg-white/10 appearance-none rounded-full accent-brand-pink">
+                <div class="flex justify-between text-[10px] font-black text-gray-600">
+                    <span>1km</span><span>500km</span>
+                </div>
+            </div>
+            
+            <button onclick="applyFilters()"
+                class="w-full bg-brand-pink py-4 rounded-xl font-black uppercase text-xs tracking-widest mt-10 shadow-lg shadow-brand-pink/20">Apply
+                Filters</button>
+        </div>
+    </div>
+
     <script>
         let users = [];
         let currentCardIndex = 0;
+        let userLocation = { lat: null, lng: null };
         const cardStack = document.getElementById('card-stack');
 
-        async function loadUsers() {
+        // Capture Geolocation early
+        function initLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    userLocation.lat = pos.coords.latitude;
+                    userLocation.lng = pos.coords.longitude;
+                    loadUsers(); // Initial load with location
+                }, (err) => {
+                    console.warn("Location denied:", err.message);
+                    loadUsers(); // Fallback without location
+                });
+            } else { loadUsers(); }
+        }
+
+        async function loadUsers(distance = 50) {
             try {
-                const res = await fetch('/api/discover/users');
+                // Show loading state in empty-state
+                document.getElementById('empty-state').innerHTML = `
+                    <i class="fas fa-heart text-6xl text-brand-pink mb-4 animate-pulse"></i>
+                    <h3 class="text-xl font-black uppercase tracking-widest">Searching...</h3>
+                `;
+
+                let url = `/api/discover/users?distance=${distance}`;
+                if (userLocation.lat && userLocation.lng) {
+                    url += `&lat=${userLocation.lat}&lng=${userLocation.lng}`;
+                }
+
+                const res = await fetch(url);
                 users = await res.json();
+                
+                // Clear stack and render
+                cardStack.innerHTML = '<div id="empty-state"></div>'; // Keep empty state placeholder
                 renderStack();
             } catch (e) { console.error("Load fail:", e); }
+        }
+
+        function applyFilters() {
+            const dist = document.getElementById('distance-slider').value;
+            toggleFilters();
+            loadUsers(dist);
+        }
+
+        function toggleFilters() {
+            document.getElementById('filters-panel').classList.toggle('translate-x-full');
         }
 
         async function loadInvitations() {
             try {
                 const res = await fetch('/api/discover/pending');
                 const senders = await res.json();
-                
                 const list = document.getElementById('invitation-list');
                 list.innerHTML = '';
                 
                 if (!senders || senders.length === 0) {
-                    list.innerHTML = '<p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest italic py-2">No pending requests yet! ❤️</p>';
+                    list.innerHTML = '<p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest italic py-4">No pending requests yet! ❤️</p>';
                     return;
                 }
 
@@ -297,7 +359,7 @@
                         <div class="flex items-center space-x-3 mb-2">
                             <h2 class="text-3xl font-black italic tracking-tighter">${user.name}, ${user.age || 20}</h2>
                         </div>
-                        <p class="text-xs text-gray-300 font-medium line-clamp-2 mb-4 leading-relaxed">${user.bio || 'Wants to find love!'}</p>
+                        <p class="text-xs text-gray-300 font-medium line-clamp-2 mb-4 leading-relaxed">${user.bio || 'Finding love on LoveSync!'}</p>
                         <div class="flex flex-wrap gap-2">
                             ${(user.interests || ['Love']).map(i => `<span class="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-white/5">${i}</span>`).join('')}
                         </div>
@@ -308,15 +370,20 @@
         }
 
         function renderStack() {
+            const emptyS = document.getElementById('empty-state');
             if (users.length === 0) {
-                document.getElementById('empty-state').innerHTML = `
+                emptyS.className = "absolute inset-0 flex flex-col items-center justify-center text-center p-10 space-y-4 opacity-40";
+                emptyS.innerHTML = `
                     <i class="fas fa-ghost text-6xl text-brand-pink mb-4"></i>
-                    <h3 class="text-xl font-black uppercase tracking-widest">No more users nearby 😅</h3>
-                    <p class="text-[10px] uppercase font-bold tracking-widest leading-loose">Check back later or invite friends! ❤️</p>
+                    <h3 class="text-xl font-black uppercase tracking-widest">No users found nearby 😅</h3>
+                    <p class="text-[10px] uppercase font-bold tracking-widest leading-loose">Try increasing the distance filter! ❤️</p>
                 `;
                 return;
+            } else {
+                emptyS.innerHTML = ''; // Clear loading/ghost for cards
             }
-            users.reverse().forEach((user) => {
+
+            users.forEach((user) => {
                 const card = createCard(user);
                 cardStack.appendChild(card);
                 initSwipe(card, user._id);
@@ -325,19 +392,16 @@
         }
 
         function initSwipe(card, targetId) {
-            let startX, moveX, moveY;
-            
+            let startX, startY, moveX, moveY;
             card.onmousedown = card.ontouchstart = (e) => {
                 startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
                 startY = e.type === 'mousedown' ? e.clientY : e.touches[0].clientY;
                 card.style.transition = 'none';
-
                 document.onmousemove = document.ontouchmove = (ev) => {
                     moveX = (ev.type === 'mousemove' ? ev.clientX : ev.touches[0].clientX) - startX;
                     moveY = (ev.type === 'mousemove' ? ev.clientY : ev.touches[0].clientY) - startY;
                     const rotation = moveX / 20;
                     card.style.transform = `translate(${moveX}px, ${moveY}px) rotate(${rotation}deg)`;
-
                     const overlay = document.getElementById('status-overlay');
                     const icon = document.getElementById('status-icon');
                     overlay.style.opacity = Math.min(Math.abs(moveX) / 100, 1);
@@ -347,7 +411,6 @@
                         icon.innerText = "SKIP"; icon.className = "text-gray-500 border-gray-500 text-8xl font-black italic tracking-widest px-8 py-2 rounded-2xl border-[10px]";
                     } else { overlay.style.opacity = 0; }
                 };
-
                 document.onmouseup = document.ontouchend = () => {
                     document.onmousemove = document.ontouchmove = null;
                     document.getElementById('status-overlay').style.opacity = 0;
@@ -365,7 +428,6 @@
             card.style.transition = 'all 0.5s ease-in';
             card.style.transform = `translate(${outX}px, 0px) rotate(${outX / 20}deg)`;
             card.style.opacity = '0';
-
             if (isInvite) {
                 await fetch('/api/discover/invite', {
                     method: 'POST',
@@ -373,10 +435,7 @@
                     body: JSON.stringify({ targetId })
                 });
                 showToast("Invitation Sent! 🏹❤️");
-            } else {
-                showToast("Skipped ❌");
-            }
-
+            } else { showToast("Skipped ❌"); }
             setTimeout(() => card.remove(), 500);
         }
 
@@ -391,9 +450,7 @@
                 if (data.success) {
                     showToast("ACCEPTED! ❤️ Redirecting...");
                     setTimeout(() => window.location.href = '/home', 2000);
-                } else {
-                    alert(data.error);
-                }
+                } else { alert(data.error); }
             } catch (e) { console.error("Accept fail:", e); }
         }
 
@@ -401,7 +458,6 @@
             const stack = cardStack.querySelectorAll('.swipe-card');
             if (stack.length === 0) return;
             const topCard = stack[stack.length - 1];
-            // Extract targetId (mock/stored in attribute)
             const targetId = users[users.length - 1 - (users.length - stack.length)]._id;
             dismissCard(topCard, type === 'like', targetId);
         }
@@ -412,10 +468,9 @@
             setTimeout(() => toast.style.display = 'none', 1500);
         }
 
-        loadUsers();
+        initLocation();
         loadInvitations();
         
-        // Floating Hearts
         const container = document.getElementById('heart-container');
         setInterval(() => {
             const heart = document.createElement('div'); heart.classList.add('heart');

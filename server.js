@@ -94,6 +94,12 @@ const UserSchema = new mongoose.Schema({
     receivedInvitations: { type: [String], default: [] }, // Array of User IDs
     sentInvitations: { type: [String], default: [] }, // Array of User IDs
     
+    // 🔥 GEOLOCATION FOR DISCOVERY
+    location: {
+        type: { type: String, enum: ['Point'], default: 'Point' },
+        coordinates: { type: [Number], default: [0, 0] } // [longitude, latitude]
+    },
+    
     streak: { type: Number, default: 0 },
     loveScore: { type: Number, default: 0 },
     mood: { type: String, default: '😴' },
@@ -123,6 +129,7 @@ const TruthDareHistorySchema = new mongoose.Schema({
 const TruthDareHistory = mongoose.model('TruthDareHistory', TruthDareHistorySchema);
 
 const User = mongoose.model('User', UserSchema);
+UserSchema.index({ location: '2dsphere' }); // 🔥 Enable proximity searching
 
 // Middleware
 app.set('view engine', 'ejs');
@@ -251,17 +258,35 @@ app.get('/discover', checkAuth, (req, res) => res.render('discover', { user: res
 app.get('/api/discover/users', checkAuth, async (req, res) => {
     try {
         const user = res.locals.user;
-        // Fetch users who are not the current user, have no partner, and haven't been invited yet
-        const users = await User.find({
+        const { lat, lng, distance = 50 } = req.query; // distance in km
+
+        // Build Query
+        const query = {
             _id: { $ne: user._id },
-            $or: [
-                { partnerId: null },
-                { partnerId: "" }
-            ],
+            $or: [{ partnerId: null }, { partnerId: "" }],
             _id: { $nin: user.sentInvitations || [] }
-        }).limit(20);
-        
-        console.log(`[DISCOVER] Found ${users.length} potential partners for ${user.name}`);
+        };
+
+        // If user provides location, filter by proximity
+        if (lat && lng) {
+            const latitude = parseFloat(lat);
+            const longitude = parseFloat(lng);
+            
+            // Save current user's location too for matching
+            await User.findByIdAndUpdate(user._id, {
+                location: { type: 'Point', coordinates: [longitude, latitude] }
+            });
+
+            query.location = {
+                $near: {
+                    $geometry: { type: "Point", coordinates: [longitude, latitude] },
+                    $maxDistance: parseInt(distance) * 1000 // Convert km to meters
+                }
+            };
+        }
+
+        const users = await User.find(query).limit(20);
+        console.log(`[DISCOVER] Found ${users.length} partners within ${distance}km`);
         res.json(users);
     } catch (e) { 
         console.error("Discover API Error:", e);
