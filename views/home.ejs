@@ -1193,6 +1193,51 @@
         }
 
 
+        const sweetMessages = [
+            "Just wanted to say I love you! ❤️",
+            "Thinking of you right now... ✨",
+            "Miss your smile already! 😘",
+            "You are my favorite person! ❤️",
+            "Can't wait to see you soon! 🏹",
+            "You make my heart skip a beat! 💓",
+            "Sending you a million virtual hugs! 🤗",
+            "You are the best thing that ever happened to me! 💖"
+        ];
+
+        async function getSuggestion() {
+            const btn = document.querySelector('button[onclick="getSuggestion()"]');
+            const originalText = btn.innerHTML;
+            const message = sweetMessages[Math.floor(Math.random() * sweetMessages.length)];
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Sending...';
+            btn.disabled = true;
+
+            try {
+                await fetch('/api/send-quick-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: message })
+                });
+
+                showToast("Sweet message sent! 🏹❤️");
+                btn.innerHTML = 'Sent! ✨';
+                btn.classList.add('bg-brand-pink', 'text-white');
+
+                // Vibrate
+                navigator.vibrate?.([40, 20, 40]);
+
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    btn.classList.remove('bg-brand-pink', 'text-white');
+                }, 3000);
+            } catch (e) {
+                showToast("Failed to send! ❌");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
         let pollInterval;
     </script>
 

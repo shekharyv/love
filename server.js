@@ -106,7 +106,11 @@ const UserSchema = new mongoose.Schema({
     level: { type: Number, default: 1 },
     exp: { type: Number, default: 0 },
     lastQuizDate: { type: Date, default: null },
-    ghostMode: { type: Boolean, default: false } // --- GHOST MODE ADDED ---
+    ghostMode: { type: Boolean, default: false },
+
+    // --- NEW EDIT PROFILE FIELDS ---
+    username: { type: String, default: "" },
+    status: { type: String, default: "Single" }
 });
 const QuizResultSchema = new mongoose.Schema({
     coupleId: String,
@@ -250,6 +254,27 @@ app.get('/home', checkAuth, (req, res) => res.render('home', { user: res.locals.
 app.get('/chat', checkAuth, (req, res) => res.render('chat', { user: res.locals.user }));
 app.get('/insights', checkAuth, (req, res) => res.render('insights', { user: res.locals.user }));
 app.get('/profile', checkAuth, (req, res) => res.render('profile', { user: res.locals.user }));
+app.get('/edit-profile', checkAuth, (req, res) => res.render('edit-profile', { user: res.locals.user }));
+
+app.put('/api/user/update', checkAuth, async (req, res) => {
+    try {
+        const { name, username, bio, mood, status, interests, avatar } = req.body;
+        const updateData = {};
+        if (name !== undefined) updateData.name = name;
+        if (username !== undefined) updateData.username = username;
+        if (bio !== undefined) updateData.bio = bio;
+        if (mood !== undefined) updateData.mood = mood;
+        if (status !== undefined) updateData.status = status;
+        if (interests !== undefined) updateData.interests = Array.isArray(interests) ? interests : interests.split(',').map(i => i.trim());
+        if (avatar !== undefined) updateData.avatar = avatar;
+
+        const updatedUser = await User.findByIdAndUpdate(res.locals.user._id, updateData, { new: true });
+        res.json({ success: true, user: updatedUser });
+    } catch (err) {
+        console.error("Update Error:", err);
+        res.status(500).json({ error: "Failed to update profile ❌" });
+    }
+});
 app.get('/camera', checkAuth, (req, res) => res.render('camera', { user: res.locals.user }));
 app.get('/quiz', checkAuth, (req, res) => res.render('quiz', { user: res.locals.user }));
 app.get('/discover', checkAuth, (req, res) => res.render('discover', { user: res.locals.user }));
