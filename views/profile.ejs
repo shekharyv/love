@@ -79,11 +79,41 @@
             filter: drop-shadow(0 0 8px rgba(225, 29, 72, 0.5));
         }
 
+        #toast-container {
+            position: fixed;
+            top: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: rgba(225, 29, 72, 0.9);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            box-shadow: 0 10px 25px rgba(225, 29, 72, 0.3);
+            backdrop-filter: blur(10px);
+            animation: toast-in 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            margin-bottom: 0.5rem;
+        }
+
+        @keyframes toast-in {
+            0% { opacity: 0; transform: translateY(-20px) scale(0.9); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
 
     </style>
 </head>
 
 <body class="min-h-screen pb-40">
+    <div id="toast-container"></div>
 
     <!-- MASTER PROFILE DASHBOARD -->
     <div id="profileSection"
@@ -114,9 +144,15 @@
                 </div>
                 <% } %>
             </div>
-            <h2 class="text-4xl font-black tracking-tighter italic mb-2">
+            <h2 class="text-4xl font-black tracking-tighter italic mb-1">
                 <%= user.name %>
             </h2>
+            <div class="flex items-center justify-center space-x-2 mb-4">
+                <span id="myCode" class="text-[11px] font-black text-white/40 uppercase tracking-[0.3em]">ID: <%= user.code %></span>
+                <button onclick="copyMyCode()" class="text-[10px] text-brand-pink/60 hover:text-brand-pink transition-colors px-2 py-0.5 bg-brand-pink/10 rounded-lg border border-brand-pink/20">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
             <p class="text-brand-pink font-black text-[10px] uppercase tracking-[0.2em] mb-4">
                 <%= user.partnerId ? 'With ' + user.partnerName + ' 💑' : 'Discovering Love ❤️' %>
             </p>
@@ -420,6 +456,27 @@
             document.body.appendChild(overlay);
         }
 
+
+        function showToast(msg) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = msg;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-20px) scale(0.9)';
+                toast.style.transition = 'all 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function copyMyCode() {
+            const code = "<%= user.code %>";
+            navigator.clipboard.writeText(code).then(() => {
+                showToast("ID Copied! 📋");
+            });
+        }
 
         async function disconnectPartner() {
             if(!confirm("Are you sure you want to disconnect from your partner? 💔 This will reset your streak and love score!")) return;

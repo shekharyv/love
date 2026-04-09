@@ -720,8 +720,8 @@
             console.log(`🚀 [CALL] Dialing Partner: ${PARTNER_ID} in Room: ${COUPLE_ID}`);
 
             // Show Outgoing UI
-            document.getElementById('outgoing-call-modal').classList.remove('hidden');
-            document.getElementById('outgoing-call-type').innerText = `Outgoing ${type} call...`;
+            document.getElementById('call-overlay').classList.remove('hidden');
+            document.getElementById('calling-status').innerText = `Outgoing ${type} call...`;
 
             socket.emit('call-user', {
                 targetId: PARTNER_ID,
@@ -739,7 +739,7 @@
 
             document.getElementById('caller-name-text').innerText = data.callerName;
             document.getElementById('call-type-label').innerText = `Loveyapa ${data.type} call...`;
-            document.getElementById('incoming-call-modal').classList.remove('hidden');
+            document.getElementById('incoming-call-box').classList.remove('hidden');
 
             window.activeCallPartner = data.from;
             window.activeCallChannel = data.channelName;
@@ -748,26 +748,26 @@
 
         function acceptCall() {
             ringtone.pause(); ringtone.currentTime = 0;
-            document.getElementById('incoming-call-modal').classList.add('hidden');
+            document.getElementById('incoming-call-box').classList.add('hidden');
             socket.emit('accept-call', { to: window.activeCallPartner, channelName: window.activeCallChannel, callType: window.activeCallType });
             startAgoraCall(window.activeCallChannel, window.activeCallType);
         }
 
         function rejectCall() {
             ringtone.pause(); ringtone.currentTime = 0;
-            document.getElementById('incoming-call-modal').classList.add('hidden');
+            document.getElementById('incoming-call-box').classList.add('hidden');
             socket.emit('reject-call', { to: window.activeCallPartner });
         }
 
         socket.on('call-accepted', (data) => {
-            document.getElementById('outgoing-call-modal').classList.add('hidden');
+            // We are already in `call-overlay`, so no need to hide it yet. Just change the text.
+            document.getElementById('calling-status').innerText = "Connected! 🟢";
             startAgoraCall(data.channelName, data.callType);
         });
 
         socket.on('call-rejected', () => {
-            document.getElementById('outgoing-call-modal').classList.add('hidden');
-            showCallStatus('Call Rejected ❌');
-            setTimeout(hideCallStatus, 3000);
+            document.getElementById('call-overlay').classList.add('hidden');
+            alert('Partner is busy or rejected the call ❌');
         });
 
         socket.on('end-call-signal', () => {
@@ -778,7 +778,7 @@
         // 🔥 CRITICAL: VERCEL CALL POLLING FALLBACK
         let isHandlingActiveCall = false;
         async function checkIncomingCall() {
-            if (isHandlingActiveCall || !document.getElementById('incoming-call-modal').classList.contains('hidden')) return;
+            if (isHandlingActiveCall || !document.getElementById('incoming-call-box').classList.contains('hidden')) return;
 
             try {
                 const res = await fetch('/api/check-call');
@@ -788,7 +788,7 @@
                     // Trigger Incoming UI
                     document.getElementById('caller-name-text').innerText = data.call.callerName;
                     document.getElementById('call-type-label').innerText = `Loveyapa ${data.call.type} call...`;
-                    document.getElementById('incoming-call-modal').classList.remove('hidden');
+                    document.getElementById('incoming-call-box').classList.remove('hidden');
 
                     window.activeCallPartner = data.call.from;
                     window.activeCallChannel = data.call.channelName;
